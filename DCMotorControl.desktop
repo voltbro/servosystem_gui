@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Type=Application
+Terminal=false
+Name=DCMotorControl
+Exec=/home/yoggi/Labs/dc_motor/main.py
+Comment=Yo-ho-ho
+Icon=/home/yoggi/Labs/dc_motor/icon.png
+Name[en]=DCMotorControl

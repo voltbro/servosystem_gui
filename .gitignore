@@ -1,0 +1,11 @@
+__pycache__/
+.venv/
+firmware/
+plots/
+forms/__pycache__/
+
+tests.ipynb
+*.slxc
+*.slxc.autosave
+*.rar
+*.zip
