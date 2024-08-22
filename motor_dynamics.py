@@ -21,6 +21,8 @@ class MotorDynamics():
         self.kv = kv
 
         self.x = np.array([0, 0])
+        self.y = np.array([0, 0])
+        self.pre_e = 0
 
         self.__update_model()
 
@@ -35,40 +37,61 @@ class MotorDynamics():
         self.kv = kv
 
     def __update_model(self):
-        num = [100]
+        num = [1]
         den = [self.J, self.B, self.k]
+        # den = [0.03, 0.7, 0.0]
 
         W = ct.tf(num, den)
-        sys = ct.ss(W)
-        dsys = ct.c2d(sys, self.ts)
-        self.A = dsys.A
-        self.B = dsys.B
-        self.C = dsys.C
+        # print(W)
+        # y,t = ct.step_response(W)
+        # plt.plot(t,y)
+        # plt.xlabel('Time')
+        # plt.title('Response of a Second Order System')
+        sys = ct.tf2ss(W)
+        dsys = ct.c2d(sys, self.ts, 'foh')
+        self.AA = dsys.A
+        self.BB = dsys.B
+        self.CC = dsys.C
+        # print(self.BB)
+        
+        
+        # self.AA = np.array([[0.8899,   0.0],
+        #                     [0.004719, 1.0]])
+        # self.BB = np.array([[0.03564], [0.000187]])
+        # self.CC = np.array([0.0, 4.167])
 
     def reset_x(self):
         self.x = np.array([0, 0])
 
     def step_openloop(self, u):
         u = np.array([u])
-        self.x = np.matmul(self.A, self.x) + np.matmul(self.B, u)
-        # self.y = np.matmul(self.C, self.x)
-        # self.x = self.x_
-        return self.x[1]#, self.x[0]
+        self.x_ = np.matmul(self.AA, self.x) + np.matmul(self.BB, u)
+        self.y = np.matmul(self.CC, self.x)
+        self.x = self.x_
+        # print(self.x[1][0])
+        return self.y[0]#self.x[1]#, self.x[0]
 
     def step_closedloop(self, ref):
-        x_ref = np.array([0.0, ref])
-        K = np.array([self.kv, self.kx])
-        e = x_ref-self.x
-        u = np.matmul(K, e)
+        # x_ref = np.array([0.0, ref])
+        # K = np.array([self.kv, self.kx])
+        
+        # e = x_ref-self.y[0]
+        # u = np.matmul(K, e)
+        e = ref-self.y[0]
+        de = (e - self.pre_e)/self.ts
+        u = self.kx*e + self.kv*de
+        u = np.clip(u, -12, 12)
         y = self.step_openloop(u)
+        self.pre_e = e
+        # print(y)
         return y
     
 
 if __name__ == "__main__":
-    J = 0.2
-    B = 1.0
+    J = 0.03
+    B = 0.7
     k = 0.0
-    kx = 16.0
+    kx = 16.01
     kv = 0.0
     ts = 0.005
 
@@ -77,6 +100,8 @@ if __name__ == "__main__":
     y1_vec = []
     ref_vec = []
     t_vec = []
+
+    ref = 1.0
 
     model = MotorDynamics(ts=ts,
                           J=J,
@@ -92,6 +117,7 @@ if __name__ == "__main__":
         if i% 1000:
             ref = 1.0
         y = model.step_closedloop(ref)
+        # y =  model.step_openloop(ref)
 
         t_vec.append(t)
         y_vec.append(y)

@@ -2,6 +2,7 @@ __pycache__/
 .venv/
 firmware/
 plots/
+matlab/
 forms/__pycache__/
 
 tests.ipynb

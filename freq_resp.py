@@ -28,7 +28,7 @@ class FreqResponce():
 
     def set_sin_params(self, A=1.0, f=1.0, phi=0.0):
         self.sin_A = A
-        self.sin_f = f
+        self.sin_f = f*(2*np.pi)
         self.sin_phi = phi
 
     def set_model_params(self, J=1.0, B=1.0, k=1.0):
@@ -57,11 +57,13 @@ class FreqResponce():
         t0 = t[0]
         for i in range(len(t)):
             t[i] -= t0
+        # print(t[-1])
+        # print(len(t))
         # get phase shift
         xcorr = correlate(sig1, sig2)
         dt = np.linspace(-t[-1], t[-1], 2*len(t)-1)
         recovered_time_shift = dt[xcorr.argmax()]
-        recovered_phase_shift = recovered_time_shift/period
+        recovered_phase_shift = 2*np.pi*recovered_time_shift/period
         
         # get amplitude ratio
         # get real amplitude of sig2

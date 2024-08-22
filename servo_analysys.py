@@ -5,17 +5,20 @@ class ServoAnalysys:
     def __init__(self, 
                  J=1.0,
                  B=1.0,
+                 k=1.0,
                  delta=1.0,
                  alpha=0.787
                  ) -> None:
         self.J = J
         self.B = B
+        self.k = k
         self.delta = delta
         self.alpha = alpha
 
-    def set_model_params(self, J=1.0, B=1.0):
+    def set_model_params(self, J=1.0, B=1.0, k=1.0):
         self.J = J
         self.B = B
+        self.k = k
 
     def set_root_params(self, delta=1.0, alpha=0.787):
         self.delta = delta

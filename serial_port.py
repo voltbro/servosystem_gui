@@ -12,6 +12,7 @@ class SerialPort():
         self.t = 0.0
         self.port = port
         self.baudrate = baudrate
+        self.data_lag = 0
 
         self.ser = serial.Serial()
         self.ser.baudrate = self.baudrate
@@ -23,11 +24,14 @@ class SerialPort():
 
     def connect(self):
         self.kill = False
+        
         self.ser.open()
         
 
     def disconnect(self):
         self.kill = True
+        self.data = b""
+        self.ser.reset_input_buffer()
         self.ser.close()
 
     def callback(self, msg : bytes):
@@ -36,6 +40,9 @@ class SerialPort():
         if msg == b"\n":
             # self.busy = False
             self.ack = True
+            # self.data_lag = self.data.count(b'\n')
+            # if self.data_lag > 2:
+            #     print(self.data_lag)
 
     def check_callback(self):
         while True:
@@ -88,6 +95,7 @@ class SerialPort():
         string_out = string[begin+1:end]
         self.data = self.data[end+2:]
         # return self.data.decode("utf-8").replace("\r", "").replace("\n", "")
+        self.data_lag = self.data.count(b'\n')
         return string_out
     
     def get_last_data(self):

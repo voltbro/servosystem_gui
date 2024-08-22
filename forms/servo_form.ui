@@ -225,7 +225,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="rightLay">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_8">
@@ -327,6 +327,13 @@
                <widget class="QPushButton" name="startDeviceBtn">
                 <property name="text">
                  <string>Start Device</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="startBothBtn">
+                <property name="text">
+                 <string>Start Both</string>
                 </property>
                </widget>
               </item>

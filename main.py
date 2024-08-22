@@ -1,14 +1,15 @@
 #!/home/yoggi/Labs/dc_motor/.venv/bin/python3
 
 # TODO: 
-# 1. При переходе на servo system передавать J и B из identification
-# 2. Проверить последнюю сашину прошивку
-# 3. Разобраться с увеличением окна при перемеходе из серво в идентификацию
-# 4. Зарзобраться с накапливающейся задержкой по сериал 
-# 5. Сделать автоматическое подключение к сериал порту на основе описания порта
+# OK 1. При переходе на servo system передавать J и B из identification
+# OK 2. Проверить последнюю сашину прошивку
+# 3. Разобраться с увеличением окна при переходе из серво в идентификацию
+# OK 4. Зарзобраться с накапливающейся задержкой по сериал 
+# 5. Сделать исключение, если нет сериал порта
 
 
 import sys
+import yaml
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import Qt, QTimer
 from forms.main_form import Ui_Dialog
@@ -22,9 +23,7 @@ class MainWindow(QtWidgets.QDialog, Ui_Dialog):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowFlags(Qt.Window)
-
-        # self.identModeBtn = QPushButton("Identification")
-        # self.servoModeBtn = QPushButton("Servo System")
+        self.showMaximized()
 
         self.identWidget = IdentWidget()
         self.servoWidget = ServoWidget()
@@ -43,6 +42,8 @@ class MainWindow(QtWidgets.QDialog, Ui_Dialog):
         self.servoWidget.setVisible(False)
 
     def servoModeBtn_clicked(self):
+        J, B, k = self.identWidget.get_model_params()
+        self.servoWidget.set_model_params(J, B, 0)
         self.identWidget.setVisible(False)
         self.servoWidget.setVisible(True)
 

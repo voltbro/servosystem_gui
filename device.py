@@ -27,6 +27,15 @@ class Device():
     def stop(self):
         self.sp.send_request(f"{STOP}")
 
+    def is_ready(self):
+        return self.sp.ack
+    
+    def get_data_lag(self):
+        return self.sp.data_lag
+    
+    def reset_readiness(self):
+        self.sp.ack = False
+
     def set_k(self, kx, kv):
         self.sp.send_request(f"{SETK} {kx} {kv}")
 
@@ -51,7 +60,6 @@ class Device():
     def get_data(self):
         data_lst = self.sp.get_data().split(" ") # 0 - time, 1 - ref, 2 - real
         if data_lst[0] == OUT and len(data_lst) > 3:
-            
             try:
                 cur = float(data_lst[3])
             except:

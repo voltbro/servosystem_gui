@@ -3,13 +3,15 @@ import numpy as np
 import pyqtgraph as pg
 import time
 import threading
+import yaml
+import os
 
 import sys
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import Qt, QTimer
 from forms.servo_form import Ui_Form
 from ident_window import IdentWidget
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy, QMessageBox, QLabel
 
 from plot_widget import PlotWidget
 from servo_analysys import ServoAnalysys
@@ -25,8 +27,8 @@ X_RESP_RANGE = 10
 Y_RESP_RANGE = 5
 STEP_DELTA = 0.05
 
-DELTA = 1
-ALPHA = np.pi/4
+# DELTA = 1
+# ALPHA = np.pi/4
 K_RANGE = 40
 
 class ServoWidget(QtWidgets.QWidget, Ui_Form):
@@ -35,13 +37,29 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.setupUi(self)
         self.resize(2048, 1536)
 
+        current_working_directory = os.path.dirname(__file__)
+        config_path = current_working_directory+'/config/config.yaml'
+        try:
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+
+            self.delta = config['delta']
+            self.alpha = config['alpha']
+            self.kx = config['kx']
+            self.kv = config['kv']
+        except:
+            self.delta = 1.0
+            self.alpha = 0.7
+            self.kx = 16.0
+            self.kv = 0.0
+
         self.servo = ServoAnalysys()
-        self.servo.set_root_params(DELTA, ALPHA)
+        self.servo.set_root_params(self.delta, self.alpha)
 
         self.model_J = 0.2
         self.model_B = 1.0
         self.sig_A = 1.0
-        self.sig_freq = 1.0
+        self.sig_freq = 0.25
         self.t = 0
         self.sig_rate = 200
         self.draw_rate = 100
@@ -55,9 +73,11 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.device = Device()
 
         self.ref_plot_vec = []
-        self.real_plot_vec = []
+        self.real_model_plot_vec = []
+        self.real_device_plot_vec = []
         self.ref_sig = 0.0
-        self.real_sig = 0.0
+        self.real_model_sig = 0.0
+        self.real_device_sig = 0.0
 
         self.im_x_line = [0, 0]
         self.im_y_line = [50, -50]
@@ -66,12 +86,13 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.root_pos_re = []
         self.root_pos_im = []
 
-        self.lambda1 = complex(-DELTA, 0)
-        self.lambda2 = complex(-DELTA, 0)
-        self.kx, self.kv = self.servo.calc_kxkv(self.lambda1, self.lambda2)
+        # self.kx = 16.0
+        # self.kv = 0.0
+        self.lambda1, self.lambda2 = self.servo.calc_lambda(self.kx, self.kv)
 
         self.startModel_toggled = False
         self.startDevice_toggled = False
+        self.startBoth_toggled = False
         self.stop_gen_sig = False
         self.sig_vec = [[],[],[]]
         self.sig_type = "sine"
@@ -82,20 +103,27 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.splitter.setSizes([1000, 2000])
         self.kxLine.setText(f"{self.kx:.2f}")
         self.kvLine.setText(f"{self.kv:.2f}")
-        self.l1Line.setText(f"{self.lambda1}")
-        self.l2Line.setText(f"{self.lambda2}")
+        self.l1Line.setText(f"{self.lambda1.real:.2f}{'+-'[int(self.lambda1.imag < 0)]}{np.abs(self.lambda1.imag):.2f}j")
+        self.l2Line.setText(f"{self.lambda2.real:.2f}{'+-'[int(self.lambda2.imag < 0)]}{np.abs(self.lambda2.imag):.2f}j")
         self.aLine.setText(f"{self.sig_A}")
         self.freqLine.setText(f"{self.sig_freq}")
+
+        self.draw_k(self.kx, self.kv)
+        self.root_pos_re = [self.lambda1.real, self.lambda2.real]
+        self.root_pos_im = [self.lambda1.imag, self.lambda2.imag]
+        self.root_line.setData(self.root_pos_re, self.root_pos_im)
 
         self.calcKBtn.clicked.connect(self.calcKBtn_clicked)
         self.calcLambdaBtn.clicked.connect(self.calcLambdaBtn_clicked)
         self.startModelBtn.clicked.connect(self.startModelBtn_clicked)
         self.startDeviceBtn.clicked.connect(self.startDeviceBtn_clicked)
+        self.startBothBtn.clicked.connect(self.startBothBtn_clicked)
 
         self.start = 0.0
         self.timer = QTimer()
         self.timer.setInterval(int(1000/self.draw_rate))
         self.timer.timeout.connect(self.update_resp_plot)
+        self.first_timer_event = True
     
     def init_root_locus_plot(self):
         self.x_root_range = X_ROOT_RANGE
@@ -120,7 +148,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.re_line = self.plot_line(self.root_plot_graph, "", self.re_x_line, self.re_y_line, pen_axis, "b", 0.0)
         self.field_line = self.plot_line(self.root_plot_graph, "", [], [], pen_field, "b", 0.0)
         self.root_line = self.plot_line(self.root_plot_graph, "Roots", self.root_pos_re, self.root_pos_im, pen, "r", 20.0)
-        self.draw_root_field(self.field_line, ALPHA, DELTA)
+        self.draw_root_field(self.field_line, self.alpha, self.delta)
 
     def init_k_plot(self):
         self.x_k_range = X_K_RANGE
@@ -163,53 +191,94 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.resp_plot_graph.setXRange(-self.x_resp_range, 0.2)
 
         pen_ref = pg.mkPen(color=(0, 190, 0), width=3)
-        pen_real = pg.mkPen(color=(0, 0, 190), width=3)
+        pen_model_real = pg.mkPen(color=(0, 0, 190), width=3)
+        pen_device_real = pg.mkPen(color=(190, 0, 0), width=3)
 
         self.time = []
 
         self.ref_line = self.plot_line(self.resp_plot_graph, "Ref", self.time, [], pen_ref, "r", 0.0)
-        self.real_line = self.plot_line(self.resp_plot_graph, "Real", self.time, [], pen_real, "g", 0.0)
+        self.real_model_line = self.plot_line(self.resp_plot_graph, "Model", self.time, [], pen_model_real, "g", 0.0)
+        self.real_device_line = self.plot_line(self.resp_plot_graph, "Device", self.time, [], pen_device_real, "b", 0.0)
+
+        xMouseLbl = QLabel("X: ")
+        yMouseLbl = QLabel("Y: ")
+        self.xPosMouseLbl = QLabel("1.5")
+        self.yPosMouseLbl = QLabel("0.2")
+        # xMouseLbl.setMaximumHeight(10)
+        # yMouseLbl.setMaximumHeight(10)
+        self.xPosMouseLbl.setMinimumWidth(100)
+        self.yPosMouseLbl.setMinimumWidth(100)
+        hSpacer = QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum) 
+
+        self.taskbarLay = QHBoxLayout()
+        self.taskbarLay.addItem(hSpacer)
+        self.taskbarLay.addWidget(xMouseLbl)
+        self.taskbarLay.addWidget(self.xPosMouseLbl)
+        self.taskbarLay.addWidget(yMouseLbl)
+        self.taskbarLay.addWidget(self.yPosMouseLbl)
+        self.rightLay.addLayout(self.taskbarLay)
 
     def update_resp_plot(self):
         if self.t >= 0:
-            self.time.append(self.t)
-            # print(f"{self.t:.3f}  {len(self.time)}  {self.x_range * self.tim_rate}")
-            # if len(self.time) > self.x_resp_range * self.draw_rate:
-            while (self.time[-1] - self.time[0]) > self.x_resp_range:
-                self.time = self.time[1:]
-                self.ref_plot_vec = self.ref_plot_vec[1:]
-                self.real_plot_vec = self.real_plot_vec[1:]
-                self.resp_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
-            # print(f"{len(self.time)} | {self.time[0]:.2f} | {self.time[-1]:.2f}")
-            
-            # sin stuff
-            self.ref_plot_vec.append(self.ref_sig)
-            self.real_plot_vec.append(self.real_sig)
-            self.ref_line.setData(self.time, self.ref_plot_vec)
-            self.real_line.setData(self.time, self.real_plot_vec)
-            
-            # end = time.time() - self.start ## собственно время работы программы
-            # print(end) ## вывод времени
-            # self.start = time.time()
+            if self.first_timer_event == True:
+                self.first_timer_event = False    
+            else:
+                self.time.append(self.t)
+                while (self.time[-1] - self.time[0]) > self.x_resp_range:
+                    self.time = self.time[1:]
+                    self.ref_plot_vec = self.ref_plot_vec[1:]
+                    self.real_model_plot_vec = self.real_model_plot_vec[1:]
+                    self.real_device_plot_vec = self.real_device_plot_vec[1:]
+                    self.resp_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
+                
+                # sig stuff
+                self.ref_plot_vec.append(self.ref_sig)
+                self.ref_line.setData(self.time, self.ref_plot_vec)
+                if self.startBoth_toggled == True or self.startModel_toggled == True:
+                    self.real_model_plot_vec.append(self.real_model_sig)
+                    self.real_model_line.setData(self.time, self.real_model_plot_vec)
+                if self.startBoth_toggled == True or self.startDevice_toggled == True:
+                    self.real_device_plot_vec.append(self.real_device_sig)
+                    self.real_device_line.setData(self.time, self.real_device_plot_vec)
 
     def gen_sig(self):
         while self.stop_gen_sig == False:
-            if self.startModel_toggled == True:
+            if self.startBoth_toggled == True:
+                while True:
+                    self.ref_sig, self.real_device_sig, self.t = self.device.get_data()
+                    if self.device.get_data_lag() <= 2:
+                        break
+                    time.sleep(0.0001)
+                # if self.sig_type == "square":
+                #     self.ref_sig, self.t = self.sig_gen.gen_square()
+                # elif self.sig_type == "sine":
+                #     self.ref_sig, self.t = self.sig_gen.gen_sin()
+                # elif self.sig_type == "triangle":
+                #     self.ref_sig, self.t = self.sig_gen.gen_triangle()
+                self.real_model_sig = self.model.step_closedloop(self.ref_sig)
+
+            elif self.startModel_toggled == True:
                 if self.sig_type == "square":
                     self.ref_sig, self.t = self.sig_gen.gen_square()
                 elif self.sig_type == "sine":
                     self.ref_sig, self.t = self.sig_gen.gen_sin()
                 elif self.sig_type == "triangle":
                     self.ref_sig, self.t = self.sig_gen.gen_triangle()
-                self.real_sig = self.model.step_closedloop(self.ref_sig)
+                self.real_model_sig = self.model.step_closedloop(self.ref_sig)
 
             elif self.startDevice_toggled == True:
-                self.ref_sig, self.real_sig, self.t = self.device.get_data()
+                # if  self.device.is_ready() == True:
+                while True:
+                    self.ref_sig, self.real_device_sig, self.t = self.device.get_data()
+                    if self.device.get_data_lag() <= 2:
+                        break
+                    time.sleep(0.0001)
+                # self.device.reset_readiness()
 
             time.sleep(self.ts)
             # end = time.time() - self.start ## собственно время работы программы
             # print(end) ## вывод времени
-            # self.start = time.time()
+            # self.start = time.time()  
 
     def root_plot_clicked(self, e):
         mousePoint = self.root_plot_graph.getPlotItem().vb.mapSceneToView(e.pos())
@@ -232,7 +301,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.lambda2 = complex(x, -y)
         # calculate feedback constants
         self.kx, self.kv = self.servo.calc_kxkv(self.lambda1, self.lambda2)
-        # show resultas in polots and linedits
+        # show results in plots and linedits
         self.draw_k(self.kx, self.kv)
         self.l1Line.setText(f"{self.lambda1.real:.2f}{'+-'[int(self.lambda1.imag < 0)]}{np.abs(self.lambda1.imag):.2f}j")
         self.l2Line.setText(f"{self.lambda2.real:.2f}{'+-'[int(self.lambda2.imag < 0)]}{np.abs(self.lambda2.imag):.2f}j")
@@ -248,7 +317,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
 
         # calculate lambdas
         self.lambda1, self.lambda2 = self.servo.calc_lambda(self.kx, self.kv)
-        # show resultas in polots and linedits
+        # show results in polots and linedits
         self.draw_k(self.kx, self.kv)
         self.root_pos_re = [self.lambda1.real, self.lambda2.real]
         self.root_pos_im = [self.lambda1.imag, self.lambda2.imag]
@@ -258,8 +327,10 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.kxLine.setText(f"{self.kx:.2f}")
         self.kvLine.setText(f"{self.kv:.2f}")
 
-    def resp_plot_clicked(self):
-        pass
+    def resp_plot_clicked(self, e):
+        mousePoint = self.resp_plot_graph.getPlotItem().vb.mapSceneToView(e.pos())
+        self.xPosMouseLbl.setText(f"{mousePoint.x():.2f}")
+        self.yPosMouseLbl.setText(f"{mousePoint.y():.2f}")
 
     def calcKBtn_clicked(self):
         try:
@@ -301,17 +372,20 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         if self.startModel_toggled == False:
             self.stop_gen_sig = False
             self.startModel_toggled = True
-            self.sig_vec = [[],[],[]]
+            self.first_timer_event = True
+            # self.sig_vec = [[],[],[]]
 
             self.sig_type = self.check_radio_btns()
             self.disable_widgets()
             self.startDeviceBtn.setEnabled(False)
+            self.startBothBtn.setEnabled(False)
             self.startModelBtn.setText("Stop Model")
 
             self.sig_A = float(self.aLine.text())
             self.sig_freq = float(self.freqLine.text())
             self.sig_gen.reset()
             self.sig_gen.set_params(self.sig_A, self.sig_freq)
+            print(f"J: {self.model.J} | B: {self.model.B} | k: {self.model.k}")
             self.model.reset_x()
             self.model.set_servo_params(self.kx, self.kv)
             # self.fr.set_sin_params(self.sin_A, self.sin_freq)
@@ -335,33 +409,44 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             # self.startModelBtn.setEnabled(True)
             self.startModelBtn.setText("Start Model")
             self.startDeviceBtn.setEnabled(True)
-            
+            self.startBothBtn.setEnabled(True)
             
 
     def startDeviceBtn_clicked(self):
         if self.startDevice_toggled == False:
+            try:
+                self.device.connect()
+            except:
+                dlg = QMessageBox(self)
+                dlg.setWindowTitle("Error")
+                dlg.setText("Cannot connect to Serial Device!")
+                dlg.setIcon(QMessageBox.Critical)
+                button = dlg.exec()
+                if button == QMessageBox.Ok:
+                    print("OK")
+                return
+
             self.stop_gen_sig = False
             self.startDevice_toggled = True
-            self.sig_vec = [[],[],[]]
+            self.first_timer_event = True
+            # self.sig_vec = [[],[],[]]
 
             self.sig_type = self.check_radio_btns()
             self.disable_widgets()
             self.startModelBtn.setEnabled(False)
+            self.startBothBtn.setEnabled(False)
             self.startDeviceBtn.setText("Stop Device")
 
             self.sig_A = float(self.aLine.text())
             self.sig_freq = float(self.freqLine.text())
 
-
-
-            self.resp_plot_graph.setYRange(-self.sig_A*1.1, self.sig_A*1.3)
             self.reset_resp_plot()
+            self.resp_plot_graph.setYRange(-self.sig_A*1.1, self.sig_A*1.3)
 
-            self.device.connect()
             time.sleep(0.05)
             self.device.stop()
             self.device.set_k(16, 0)
-            self.device.set_fric(1, 20)
+            self.device.set_fric(1.0, 20)
             self.device.start_step(0)
             self.device.wait_step(STEP_DELTA)
             self.device.set_k(self.kx, self.kv)
@@ -396,16 +481,96 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             # self.startModelBtn.setEnabled(True)
             self.startDeviceBtn.setText("Start Device")
             self.startModelBtn.setEnabled(True)
+            self.startBothBtn.setEnabled(True)
+            print("Stop Device")
+
+    def startBothBtn_clicked(self):
+        if self.startBoth_toggled == False:
+            try:
+                self.device.connect()
+            except:
+                dlg = QMessageBox(self)
+                dlg.setWindowTitle("Error")
+                dlg.setText("Cannot connect to Serial Device!")
+                dlg.setIcon(QMessageBox.Critical)
+                button = dlg.exec()
+                if button == QMessageBox.Ok:
+                    print("OK")
+                return
+
+            self.stop_gen_sig = False
+            self.startBoth_toggled = True
+            self.first_timer_event = True
+            # self.sig_vec = [[],[],[]]
+
+            self.sig_type = self.check_radio_btns()
+            self.disable_widgets()
+            self.startModelBtn.setEnabled(False)
+            self.startDeviceBtn.setEnabled(False)
+            self.startBothBtn.setText("Stop")
+
+            self.sig_A = float(self.aLine.text())
+            self.sig_freq = float(self.freqLine.text())
+
+            self.reset_resp_plot()
+            self.resp_plot_graph.setYRange(-self.sig_A*1.1, self.sig_A*1.3)
+
+            self.sig_gen.reset()
+            self.sig_gen.set_params(self.sig_A, self.sig_freq)
+            self.model.reset_x()
+            self.model.set_servo_params(self.kx, self.kv)
+
+            time.sleep(0.05)
+            self.device.stop()
+            self.device.set_k(16, 0)
+            self.device.set_fric(1.0, 20)
+            self.device.start_step(0)
+            self.device.wait_step(STEP_DELTA)
+            self.device.set_k(self.kx, self.kv)
+            if self.sig_type == "square":
+                # self.ref_sig, self.t = self.sig_gen.gen_square()
+                self.device.start_square(self.sig_A, self.sig_freq)
+            elif self.sig_type == "sine":
+                self.device.start_sin(self.sig_A, self.sig_freq)
+                # self.ref_sig, self.t = self.sig_gen.gen_sin()
+            elif self.sig_type == "triangle":
+                # self.ref_sig, self.t = self.sig_gen.gen_triangle()
+                self.device.start_triangle(self.sig_A, self.sig_freq)
+            
+
+            th1 = threading.Thread(target=self.gen_sig, daemon=True)
+            th1.start()
+            self.timer.start()
+
+            print("Start Device")
+        else:
+            self.startBoth_toggled = False
+            self.stop_gen_sig = True
+            # self.sin_type = DEVICE
+            self.timer.stop()
+
+            # self.device.sp.data = b""
+            self.device.stop()
+            time.sleep(0.05)
+            self.device.disconnect()
+
+            self.enable_widgets()
+            # self.startModelBtn.setEnabled(True)
+            self.startBothBtn.setText("Start Both")
+            self.startModelBtn.setEnabled(True)
+            self.startDeviceBtn.setEnabled(True)
             print("Stop Device")
 
 
     def reset_resp_plot(self):
         self.ref_plot_vec = []
-        self.real_plot_vec = []
+        self.real_model_plot_vec = []
+        self.real_device_plot_vec = []
         self.time = []
         self.resp_plot_graph.setXRange(0, self.x_resp_range)
         self.ref_line.setData(self.time, self.ref_plot_vec)
-        self.real_line.setData(self.time, self.real_plot_vec)
+        self.real_model_line.setData(self.time, self.real_model_plot_vec)
+        self.real_device_line.setData(self.time, self.real_device_plot_vec)
 
     def check_radio_btns(self):
         sig_type = "sine"
@@ -474,11 +639,22 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             symbolBrush=brush,
         )
 
-    def set_model_params(self, J, B):
+    def set_model_params(self, J, B, k):
         self.model_J = J
         self.model_B = B
-        self.servo.set_model_params(self.model_J, self.model_B)
-        self.model.set_identification_params(self.model_J, self.model_B, 0.0)
+        self.model_k = k
+        self.servo.set_model_params(self.model_J, self.model_B, self.model_k)
+        self.model.set_identification_params(self.model_J, self.model_B, self.model_k)
+
+        self.lambda1, self.lambda2 = self.servo.calc_lambda(self.kx, self.kv)
+        self.draw_k(self.kx, self.kv)
+        self.root_pos_re = [self.lambda1.real, self.lambda2.real]
+        self.root_pos_im = [self.lambda1.imag, self.lambda2.imag]
+        self.root_line.setData(self.root_pos_re, self.root_pos_im)
+        self.kxLine.setText(f"{self.kx:.2f}")
+        self.kvLine.setText(f"{self.kv:.2f}")
+        self.l1Line.setText(f"{self.lambda1.real:.2f}{'+-'[int(self.lambda1.imag < 0)]}{np.abs(self.lambda1.imag):.2f}j")
+        self.l2Line.setText(f"{self.lambda2.real:.2f}{'+-'[int(self.lambda2.imag < 0)]}{np.abs(self.lambda2.imag):.2f}j")
 
         
 

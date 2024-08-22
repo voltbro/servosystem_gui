@@ -7,6 +7,8 @@ from random import randint
 import time
 import threading
 import qtawesome as qta
+import yaml
+import os
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import Qt, QTimer
@@ -26,24 +28,41 @@ STEP_DELTA = 0.05
 MODEL = 0
 DEVICE = 1
 
+FRIC_K = 0.82
+FRIC_OFFSET = 0
+
 class IdentWidget(QtWidgets.QWidget, Ui_Form):
     def __init__(self, *args, obj=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("Identification")
 
+        # current_working_directory = os.getcwd()
+        current_working_directory = os.path.dirname(__file__)
+        config_path = current_working_directory+'/config/config.yaml'
+        try:
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+            self.sin_A = config['A']
+            self.sin_freq = config['freq']
+
+            self.mot_J = config['J']
+            self.mot_B = config['B']
+            self.mot_k = config['k']
+        except:
+            self.sin_A = 10.0
+            self.sin_freq = 1.0
+
+            self.mot_J = 1.0
+            self.mot_B = 1.0
+            self.mot_k = 1.0
+
         # sin stuff
         self.t = 0
         self.rate = 200
         self.ts = 1/self.rate
-        self.sin_A = 1.0
-        self.sin_freq = 1.0
-        T = 1.0
-        sigma = 0.5
-        self.mot_J = T**2
-        self.mot_B = 2*sigma*T
-        self.mot_k = 1.0
-        self.acceptable_sin = 20*np.pi/(self.sin_freq*self.ts)
+
+        self.acceptable_sin = (20*np.pi)/(self.sin_freq*self.ts)
         self.len_sin_points = 0
         self.sin_plot_vec = [[0.0],[0.0]]
         self.amp_model_vec = []
@@ -83,8 +102,6 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.drawBtn.clicked.connect(self.drawBtn_clicked)
         self.clearBtn.clicked.connect(self.clearBtn_clicked)
         self.putPointBtn.clicked.connect(self.putPointBtn_clicked)
-        # self.setModelBtn.clicked.connect(self.setModelBtn_clicked)
-        # self.stopBtn.clicked.connect(self.stopBtn_clicked)
 
     def init_ui(self):
         self.k_lineEdit.setText(f"{self.mot_k}")
@@ -92,12 +109,11 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.freq_lineEdit.setText(f"{self.sin_freq}")
         self.j_lineEdit.setText(f"{self.mot_J}")
         self.b_lineEdit.setText(f"{self.mot_B}")
-        # self.stopBtn.setEnabled(False)
 
     def read_line_edits(self):
         self.mot_k = float(self.k_lineEdit.text())
         self.sin_A = float(self.a_lineEdit.text())
-        self.sin_freq = float(self.freq_lineEdit.text())*(2*np.pi)
+        self.sin_freq = float(self.freq_lineEdit.text())
         self.mot_J = float(self.j_lineEdit.text())
         self.mot_B = float(self.b_lineEdit.text())
 
@@ -122,7 +138,6 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.leftLay.addWidget(self.time_plot_graph)
         self.time_plot_graph.setBackground("w")
         styles = {"color": "black", "font-size": "36px"}
-        # self.plot_graph.setLabel("left", "Shaft Angle (deg)", **styles)
         self.time_plot_graph.setLabel("bottom", "Time (sec)", **styles)
         self.time_plot_graph.addLegend()
         self.time_plot_graph.showGrid(x=True, y=True)
@@ -139,8 +154,6 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         yMouseLbl = QLabel("Y: ")
         self.xPosMouseLbl = QLabel("1.5")
         self.yPosMouseLbl = QLabel("0.2")
-        # xMouseLbl.setMaximumHeight(10)
-        # yMouseLbl.setMaximumHeight(10)
         self.xPosMouseLbl.setMinimumWidth(100)
         self.yPosMouseLbl.setMinimumWidth(100)
         hSpacer = QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum) 
@@ -177,10 +190,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.amp_plot_graph.setLabel("left", "Amplitude", **styles)
         self.amp_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
         self.amp_plot_graph.addLegend(offset=(0, 10))
-        # self.amp_plot_graph.addLegend()
         self.amp_plot_graph.showGrid(x=True, y=True)
-        # self.amp_plot_graph.setYRange(0, 2)
-        # self.amp_plot_graph.setXRange(0, 5)
 
         amp_pen = pg.mkPen(None)
 
@@ -197,10 +207,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         styles = {"color": "black", "font-size": "36px"}
         self.phase_plot_graph.setLabel("left", "Phase Lag", **styles)
         self.phase_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
-        # self.amp_plot_graph.addLegend()
         self.phase_plot_graph.showGrid(x=True, y=True)
-        # self.phase_plot_graph.setYRange(0, -3)
-        # self.phase_plot_graph.setXRange(0, 5)
 
         phase_pen = pg.mkPen(None)
 
@@ -210,18 +217,18 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
 
         
     def reset_time_plot(self):
-        self.sin_plot_vec = [[0.0],[0.0]]
-        self.time = [0]
+        self.sin_plot_vec = [[],[]]
+        self.time = []
         self.time_plot_graph.setXRange(0, self.x_time_range)
         self.time_line[0].clear()
 
     def reset_freq_plots(self):
         self.amp_model_line.clear()
         self.phase_model_line.clear()
-        # self.phase_plot_graph.setXRange(0, 5)
-        # self.amp_plot_graph.setXRange(0, 5)
-        self.amp_model_line.setData([0], [0])
-        self.phase_model_line.setData([0], [0])
+        self.amp_model_line.setData([], [])
+        self.phase_model_line.setData([], [])
+        self.amp_device_line.setData([], [])
+        self.phase_device_line.setData([], [])
         
     def startModelBtn_clicked(self):
         if self.startModel_toggled == False:
@@ -231,18 +238,15 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
 
             self.read_line_edits()
             self.disable_line_edits()
-            # self.startModelBtn.setEnabled(False)
             self.startDeviceBtn.setEnabled(False)
             self.putPointBtn.setEnabled(False)
             self.drawBtn.setEnabled(False)
             self.clearBtn.setEnabled(False)
             self.sinProgress.setVisible(False)
             self.okLbl.setVisible(False)
-            # self.stopBtn.setEnabled(True)
             self.startModelBtn.setText("Stop Model")
             self.fr.set_sin_params(self.sin_A, self.sin_freq)
             self.fr.set_model_params(self.mot_J, self.mot_B, self.mot_k)
-            # print(f"J: {self.mot_J} | B: {self.mot_B} | k: {self.mot_k}")
             self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.3)
 
             self.fr.reset()
@@ -258,15 +262,12 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.timer.stop()
             
             self.enable_line_edits()
-            # self.startModelBtn.setEnabled(True)
             self.startModelBtn.setText("Start Model")
             self.startDeviceBtn.setEnabled(True)
             self.putPointBtn.setEnabled(True)
             self.drawBtn.setEnabled(True)
             self.clearBtn.setEnabled(True)
 
-
-            
     def startDeviceBtn_clicked(self):
         if self.startDevice_toggled == False:
             self.stop_gen_sin = False
@@ -276,28 +277,28 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.putPointBtn.setEnabled(False)
             self.drawBtn.setEnabled(False)
             self.clearBtn.setEnabled(False)
-            # self.setModelBtn.setEnabled(False)
             self.drawBtn.setEnabled(False)
             self.disable_line_edits()
             self.startDeviceBtn.setText("Stop Device")
             self.sinProgress.setVisible(True)
             self.okLbl.setVisible(False)
 
-            self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.3)
             self.reset_time_plot()
 
             self.sin_sig_vec = [[],[],[]]
             self.read_line_edits()
+            self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.3)
             self.fr.set_sin_params(self.sin_A, self.sin_freq)
-            self.acceptable_sin = 20*np.pi/(self.sin_freq*self.ts)
+            self.acceptable_sin = (20*np.pi)/(self.sin_freq*self.ts)
             self.len_sin_points = 0
             self.device.connect()
-            time.sleep(0.05)
+            time.sleep(0.1)
             self.device.stop()
             self.device.set_k(16, 0)
-            self.device.set_fric(1, 20)
+            self.device.set_fric(FRIC_K, FRIC_OFFSET)
             self.device.start_step(0)
             self.device.wait_step(STEP_DELTA)
+            time.sleep(0.2)
             self.device.set_k(self.mot_k, 0)
             self.device.start_sin_u(self.sin_A, self.sin_freq)
 
@@ -312,8 +313,6 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.sin_type = DEVICE
             self.timer.stop()
 
-            # self.device.sp.data = b""
-            
             self.device.stop()
             time.sleep(0.005)
             self.device.disconnect()
@@ -332,38 +331,28 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.read_line_edits()
         if self.sin_type == MODEL:
             self.fr.set_model_params(self.mot_J, self.mot_B, self.mot_k)
-            amp, phase = self.fr.calc_point_model(self.sin_freq, self.mot_J, self.mot_B, self.mot_k)
+            amp, phase = self.fr.calc_point_model(self.sin_freq*(2*np.pi), self.mot_J, self.mot_B, self.mot_k)
             self.amp_model_vec.append(amp)
             self.phase_model_vec.append(phase)
-            self.omega_model_vec.append(self.sin_freq/(2*np.pi))
+            self.omega_model_vec.append(self.sin_freq)
             self.amp_model_line.setData(self.omega_model_vec, self.amp_model_vec)
             self.phase_model_line.setData(self.omega_model_vec, self.phase_model_vec)
         elif self.sin_type == DEVICE:
-            # print(self.sin_sig_vec[2])
             amp, phase = self.fr.calc_point_real(sig1=self.sin_sig_vec[0], 
                                                  sig2=self.sin_sig_vec[1], 
                                                  t=self.sin_sig_vec[2], 
                                                  period=1/self.sin_freq)
+            print(1/self.sin_freq)
             if phase > 0:
                 phase = -(2 - phase/np.pi) * np.pi
             self.amp_device_vec.append(amp)
             self.phase_device_vec.append(phase)
-            self.omega_device_vec.append(self.sin_freq/(2*np.pi))
+            self.omega_device_vec.append(self.sin_freq)
             self.amp_device_line.setData(self.omega_device_vec, self.amp_device_vec)
             self.phase_device_line.setData(self.omega_device_vec, self.phase_device_vec)
-            # print(f"A: {amp} | phi {phase}")
 
-        
+        self.freq_plots_autoscale()
 
-        # if self.draw_pressed:
-        #     self.amp_vec = []
-        #     self.phase_vec = []
-        #     self.omega_vec = []
-        #     self.draw_pressed = False
-        #     self.reset_freq_plots()
-
-        
-    
     def drawBtn_clicked(self):
         self.draw_pressed = True
         self.read_line_edits()
@@ -375,68 +364,80 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.amp_model_line.setData(self.omega_model_vec, self.amp_model_vec)
         self.phase_model_line.setData(self.omega_model_vec, self.phase_model_vec)
 
+        self.freq_plots_autoscale()
+
+    def freq_plots_autoscale(self):
+        amv = self.amp_plot_graph.getViewBox()
+        amv.enableAutoRange(axis='y', enable=True)
+        amv.enableAutoRange(axis='x', enable=True)
+
+        pmv = self.phase_plot_graph.getViewBox()
+        pmv.enableAutoRange(axis='y', enable=True)
+        pmv.enableAutoRange(axis='x', enable=True)
+
     def clearBtn_clicked(self):
         self.draw_pressed = False
         self.amp_model_vec = []
         self.phase_model_vec = []
         self.omega_model_vec = []
+        self.amp_device_vec = []
+        self.phase_device_vec = []
+        self.omega_device_vec = []
         self.reset_freq_plots()
 
     def time_plot_clicked(self, e):
-        # print(e)
         mousePoint = self.time_plot_graph.getPlotItem().vb.mapSceneToView(e.pos())
         self.xPosMouseLbl.setText(f"{mousePoint.x():.2f}")
         self.yPosMouseLbl.setText(f"{mousePoint.y():.2f}")
-        
+    
+    def append_sig_vectors(self):
+        if self.t >= 0.0:
+            self.sin_sig_vec[0].append(self.sin_sig[0])
+            self.sin_sig_vec[1].append(self.sin_sig[1])
+            self.sin_sig_vec[2].append(self.t)
+            self.len_sin_points += 1
+            if len(self.sin_sig_vec[0]) > self.acceptable_sin:
+                self.sin_sig_vec[0] = self.sin_sig_vec[0][1:]
+                self.sin_sig_vec[1] = self.sin_sig_vec[1][1:]
+                self.sin_sig_vec[2] = self.sin_sig_vec[2][1:]
+        else:
+            print("warning: t=-1")
     
     def gen_sin(self):
         while self.stop_gen_sin == False:
             if self.startModel_toggled == True:
                 self.sin_sig[0], self.sin_sig[1], self.t = self.fr.step_sin_model()
+                self.append_sig_vectors()
             elif self.startDevice_toggled == True:
-                self.sin_sig[0], self.sin_sig[1], self.t = self.device.get_data()
-                # self.sin_sig[0] = self.device.pwm2volts(self.sin_sig[0])
-            # print(f"time: {self.t:.2f} | ref: {self.sin_sig[0]:.0f} | real: {self.sin_sig[1]:.2f}")
-            
-            if self.t >= 0.0:
-                self.sin_sig_vec[0].append(self.sin_sig[0])
-                self.sin_sig_vec[1].append(self.sin_sig[1])
-                self.sin_sig_vec[2].append(self.t)
-                self.len_sin_points += 1
-                if len(self.sin_sig_vec[0]) > self.acceptable_sin:
-                    self.sin_sig_vec[0] = self.sin_sig_vec[0][1:]
-                    self.sin_sig_vec[1] = self.sin_sig_vec[1][1:]
-                    self.sin_sig_vec[2] = self.sin_sig_vec[2][1:]
-            else:
-                print("warning: t=-1")
+                while True:
+                    self.sin_sig[0], self.sin_sig[1], self.t = self.device.get_data()
+                    self.append_sig_vectors()
+                    if self.device.get_data_lag() <= 2:
+                        break
+                    time.sleep(0.0001)
             time.sleep(self.ts)
             
 
     def update_time_plot(self):
         if self.t >= 0:
             self.time.append(self.t)
-            # print(f"{self.t:.3f}  {len(self.time)}  {self.x_range * self.tim_rate}")
-            # if len(self.time) > self.x_time_range * self.tim_rate:
             while (self.time[-1] - self.time[0]) > self.x_time_range:
                 self.time = self.time[1:]
                 self.sin_plot_vec[0] = self.sin_plot_vec[0][1:]
                 self.sin_plot_vec[1] = self.sin_plot_vec[1][1:]
                 self.time_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
-            # print(f"{len(self.time)} | {self.time[0]:.2f}| {self.time[-1]:.2f}")
             
             # sin stuff
             for i in range(2):
                 self.sin_plot_vec[i].append(self.sin_sig[i])
                 self.time_line[i].setData(self.time, self.sin_plot_vec[i])
 
-            progress = int(100*self.len_sin_points/(1.3*self.acceptable_sin))
+            progress = int(100*self.len_sin_points/(1.3*self.acceptable_sin/(2*np.pi)))
             self.sinProgress.setValue(progress)
             if progress >= 99:
                 self.sinProgress.setVisible(False)
                 self.sinProgress.setValue(0)
                 self.okLbl.setVisible(True)
-
-            # print()
         
 
     def plot_line(self, graph, name, time, data, pen, brush, symbol_size=0.0):
@@ -449,6 +450,9 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             symbolSize=symbol_size,
             symbolBrush=brush,
         )
+    
+    def get_model_params(self):
+        return self.mot_J, self.mot_B, self.mot_k
 
 
 
