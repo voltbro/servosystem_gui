@@ -15,5 +15,5 @@ cd servosystem_gui
 source .venv/bin/activate
 python3 main.py
 ```
-Второй способ:
+Второй способ: <br>
 На рабочем столе кликните правой кнопкой мыши по иконке DCMotorControl и выберите Allow Launching. Затем дважды кликните по иконке, чтобы запустить программу.

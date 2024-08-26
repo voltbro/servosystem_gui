@@ -36,3 +36,4 @@ echo -e "Comment=Yo-ho-ho" >> $FILE
 echo -e "Icon=$DIR/icons/icon.png" >> $FILE
 echo -e "Name[en]=DCMotorControl" >> $FILE
 cp $FILE ~/Desktop/
+cp $FILE /usr/share/applications
