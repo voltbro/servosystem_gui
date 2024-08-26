@@ -11,8 +11,8 @@ class PlotWidget(pg.PlotWidget):
 
     def mousePressEvent(self, ev : QMouseEvent):
         super().mousePressEvent(ev)
-        
-        self.sigMouseClicked.emit(ev)
+        if ev.button() == Qt.LeftButton:
+            self.sigMouseClicked.emit(ev)
 
     def dragEnterEvent(self, ev):
         super().dragEnterEvent(ev)
