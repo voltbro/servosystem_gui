@@ -1,6 +1,11 @@
 Программа тестировалась только на Ubuntu 24.04
 
 Установка: <br>
+sudo apt install git <br>
+apt install python3.12-venv <br>
+sudo apt install python3-pyqt5 <br>
+sudo gpasswd --add ${USER} dialout <br>
+
 cd ~ <br>
 git clone https://github.com/voltbro/servosystem_gui.git <br>
 cd servosystem_gui <br>
@@ -14,6 +19,8 @@ pip install pyqtgraph <br>
 pip install control <br>
 pip install QtAwesome <br>
 pip install pyserial <br>
+
+Перезапустите компьютер
 
 Запуск <br>
 cd servosystem_gui <br>
