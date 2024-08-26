@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 echo "Script location: ${DIR}"
 
-apt install python3.12-venv
+sudo apt install python3.12-venv
 sudo apt install python3-pyqt5
 sudo gpasswd --add ${USER} dialout
 
@@ -37,5 +37,7 @@ echo -e "Exec=$DIR/startup.sh" >> $FILE
 echo -e "Comment=Yo-ho-ho" >> $FILE
 echo -e "Icon=$DIR/icons/icon.png" >> $FILE
 echo -e "Name[en]=DCMotorControl" >> $FILE
-sudo cp $FILE ~/Desktop/
+cp $FILE ~/Desktop/
 sudo cp $FILE /usr/share/applications
+
+echo "Installation complete successfully!"
