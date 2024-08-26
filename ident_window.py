@@ -49,6 +49,10 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.mot_J = config['J']
             self.mot_B = config['B']
             self.mot_k = config['k']
+            
+            self.plot_font_size = config['plot_font_size']
+            self.plot_point_size = config['plot_point_size']
+            self.plot_line_width = config['plot_line_width']
         except:
             self.sin_A = 10.0
             self.sin_freq = 1.0
@@ -56,6 +60,10 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.mot_J = 1.0
             self.mot_B = 1.0
             self.mot_k = 1.0
+
+            self.plot_font_size = 36
+            self.plot_point_size = 20
+            self.plot_line_width = 3
 
         # sin stuff
         self.t = 0
@@ -137,14 +145,14 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.time_plot_graph.sigMouseClicked.connect(self.time_plot_clicked)
         self.leftLay.addWidget(self.time_plot_graph)
         self.time_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.time_plot_graph.setLabel("bottom", "Time (sec)", **styles)
         self.time_plot_graph.addLegend()
         self.time_plot_graph.showGrid(x=True, y=True)
         self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.1+5.5)
         self.time_plot_graph.setXRange(0, self.x_time_range)
 
-        pen = [pg.mkPen(color=(0, 190, 0), width=3), pg.mkPen(color=(0, 0, 190), width=3)]
+        pen = [pg.mkPen(color=(0, 190, 0), width=self.plot_line_width), pg.mkPen(color=(0, 0, 190), width=self.plot_line_width)]
 
         self.time = [0]
         self.time_line = [self.plot_line(self.time_plot_graph, "Voltage [v]", self.time, self.sin_plot_vec[0], pen[0], None),
@@ -186,7 +194,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.amp_plot_graph = PlotWidget()
         self.rightLay.addWidget(self.amp_plot_graph)
         self.amp_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.amp_plot_graph.setLabel("left", "Amplitude", **styles)
         self.amp_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
         self.amp_plot_graph.addLegend(offset=(0, 10))
@@ -195,8 +203,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         amp_pen = pg.mkPen(None)
 
         self.freq = [0]
-        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Model", self.time, self.amp_model_vec, amp_pen, "r", 20.0)
-        self.amp_device_line = self.plot_line(self.amp_plot_graph, "Device", self.time, self.amp_device_vec, amp_pen, "b", 20.0)
+        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Model", self.time, self.amp_model_vec, amp_pen, "r", self.plot_point_size)
+        self.amp_device_line = self.plot_line(self.amp_plot_graph, "Device", self.time, self.amp_device_vec, amp_pen, "b", self.plot_point_size)
 
     def init_phase_plot(self):
         self.x_freq_range = X_FREQ_RANGE
@@ -204,7 +212,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         pg.setConfigOptions(antialias = True)
         self.rightLay.addWidget(self.phase_plot_graph)
         self.phase_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.phase_plot_graph.setLabel("left", "Phase Lag", **styles)
         self.phase_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
         self.phase_plot_graph.showGrid(x=True, y=True)
@@ -212,8 +220,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         phase_pen = pg.mkPen(None)
 
         # self.freq = [0]
-        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, "r", 20.0)
-        self.phase_device_line = self.plot_line(self.phase_plot_graph, "Device", self.time, self.phase_device_vec, phase_pen, "b", 20.0)
+        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, "r", self.plot_point_size)
+        self.phase_device_line = self.plot_line(self.phase_plot_graph, "Device", self.time, self.phase_device_vec, phase_pen, "b", self.plot_point_size)
 
         
     def reset_time_plot(self):

@@ -47,11 +47,19 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.alpha = config['alpha']
             self.kx = config['kx']
             self.kv = config['kv']
+
+            self.plot_font_size = config['plot_font_size']
+            self.plot_point_size = config['plot_point_size']
+            self.plot_line_width = config['plot_line_width']
         except:
             self.delta = 1.0
             self.alpha = 0.7
             self.kx = 16.0
             self.kv = 0.0
+
+            self.plot_font_size = 36
+            self.plot_point_size = 20
+            self.plot_line_width = 3
 
         self.servo = ServoAnalysys()
         self.servo.set_root_params(self.delta, self.alpha)
@@ -69,6 +77,9 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                             J=self.model_J,
                             B=self.model_B,
                             k=0.0,
+                            model_type=1,
+                            kx=self.kx,
+                            kv=self.kv,
                             )
         self.device = Device()
 
@@ -132,7 +143,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.root_plot_graph.sigMouseClicked.connect(self.root_plot_clicked)
         self.leftLay.addWidget(self.root_plot_graph)
         self.root_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.root_plot_graph.setLabel("left", "Im", **styles)
         self.root_plot_graph.setLabel("bottom", "Re", **styles)
         # self.root_plot_graph.addLegend()
@@ -141,13 +152,13 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.root_plot_graph.setXRange(-self.x_root_range, 0.2)
 
         pen = pg.mkPen(None)
-        pen_axis = pg.mkPen(color=(0, 0, 0), width=2)
-        pen_field = pg.mkPen(color=(0, 0, 0), width=3)
+        pen_axis = pg.mkPen(color=(0, 0, 0), width=1)
+        pen_field = pg.mkPen(color=(0, 0, 0), width=2)
         
         self.im_line = self.plot_line(self.root_plot_graph, "", self.im_x_line, self.im_y_line, pen_axis, "b", 0.0)
         self.re_line = self.plot_line(self.root_plot_graph, "", self.re_x_line, self.re_y_line, pen_axis, "b", 0.0)
         self.field_line = self.plot_line(self.root_plot_graph, "", [], [], pen_field, "b", 0.0)
-        self.root_line = self.plot_line(self.root_plot_graph, "Roots", self.root_pos_re, self.root_pos_im, pen, "r", 20.0)
+        self.root_line = self.plot_line(self.root_plot_graph, "Roots", self.root_pos_re, self.root_pos_im, pen, "r", self.plot_point_size)
         self.draw_root_field(self.field_line, self.alpha, self.delta)
 
     def init_k_plot(self):
@@ -157,7 +168,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.k_plot_graph.sigMouseClicked.connect(self.k_plot_clicked)
         self.leftLay.addWidget(self.k_plot_graph)
         self.k_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.k_plot_graph.setLabel("left", "k_v", **styles)
         self.k_plot_graph.setLabel("bottom", "k_x", **styles)
         # self.k_plot_graph.addLegend()
@@ -166,10 +177,10 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.k_plot_graph.setXRange(0, self.x_k_range)
 
         pen = pg.mkPen(None)
-        pen_k = pg.mkPen(color=(0, 0, 0), width=3)
+        pen_k = pg.mkPen(color=(0, 0, 0), width=2)
 
         self.root_pos_re = []
-        self.k_line = self.plot_line(self.k_plot_graph, "1", [], [], pen_k, "r", 20.0)
+        self.k_line = self.plot_line(self.k_plot_graph, "1", [], [], pen_k, "r", self.plot_point_size)
         self.k1_line = self.plot_line(self.k_plot_graph, "1", self.root_pos_re, [], pen_k, "r", 0.0)
         self.k2_line = self.plot_line(self.k_plot_graph, "2", self.root_pos_re, [], pen_k, "g", 0.0)
         self.k3_line = self.plot_line(self.k_plot_graph, "3", self.root_pos_re, [], pen_k, "b", 0.0)
@@ -182,7 +193,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.resp_plot_graph.sigMouseClicked.connect(self.resp_plot_clicked)
         self.rightLay.addWidget(self.resp_plot_graph)
         self.resp_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": "36px"}
+        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.resp_plot_graph.setLabel("left", "Angle [rad]", **styles)
         self.resp_plot_graph.setLabel("bottom", "Time [sec]", **styles)
         self.resp_plot_graph.addLegend()
@@ -190,9 +201,9 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.resp_plot_graph.setYRange(-self.y_resp_range, self.y_resp_range)
         self.resp_plot_graph.setXRange(-self.x_resp_range, 0.2)
 
-        pen_ref = pg.mkPen(color=(0, 190, 0), width=3)
-        pen_model_real = pg.mkPen(color=(0, 0, 190), width=3)
-        pen_device_real = pg.mkPen(color=(190, 0, 0), width=3)
+        pen_ref = pg.mkPen(color=(0, 190, 0), width=self.plot_line_width)
+        pen_model_real = pg.mkPen(color=(0, 0, 190), width=self.plot_line_width)
+        pen_device_real = pg.mkPen(color=(190, 0, 0), width=self.plot_line_width)
 
         self.time = []
 
@@ -255,7 +266,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                 #     self.ref_sig, self.t = self.sig_gen.gen_sin()
                 # elif self.sig_type == "triangle":
                 #     self.ref_sig, self.t = self.sig_gen.gen_triangle()
-                self.real_model_sig = self.model.step_closedloop(self.ref_sig)
+                self.real_model_sig = self.model.step(self.ref_sig)
 
             elif self.startModel_toggled == True:
                 if self.sig_type == "square":
@@ -264,7 +275,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                     self.ref_sig, self.t = self.sig_gen.gen_sin()
                 elif self.sig_type == "triangle":
                     self.ref_sig, self.t = self.sig_gen.gen_triangle()
-                self.real_model_sig = self.model.step_closedloop(self.ref_sig)
+                self.real_model_sig = self.model.step(self.ref_sig)
 
             elif self.startDevice_toggled == True:
                 # if  self.device.is_ready() == True:

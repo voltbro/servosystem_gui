@@ -1,12 +1,16 @@
+plot_font_size: 36
+plot_point_size: 20
+plot_line_width: 3
+
 # --------------
 # IDENTIFICATION
 # --------------
 A: 5.0
 freq: 1.0
 
-J: 1.0
-B: 1.0
-k: 1.0
+J: 0.09
+B: 1.85
+k: 0.0
 
 # --------------
 # SERVO SYSTEM

@@ -21,6 +21,7 @@ class FreqResponce():
                             J=self.model_J,
                             B=self.model_B,
                             k=self.model_k,
+                            model_type=0,
                             )
 
     def gen_sin(self, A, f, phi, t):
@@ -44,7 +45,7 @@ class FreqResponce():
     def step_sin_model(self):
         u = self.gen_sin(self.sin_A, self.sin_f, self.sin_phi, self.t)
         self.t += self.ts
-        y = self.mot.step_openloop(u)
+        y = self.mot.step(u)
         return u, y, self.t
     
     def calc_point_model(self, omega, J, B, k):
