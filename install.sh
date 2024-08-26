@@ -18,3 +18,21 @@ pip install pyqtgraph
 pip install control
 pip install QtAwesome
 pip install pyserial
+
+
+FILE="DCMotorControl.desktop"
+echo $FILE
+if [ -f "$FILE" ] ; then
+    rm "$FILE"
+fi
+echo -e "[Desktop Entry]" >> $FILE
+echo -e "Version=1.0" >> $FILE
+echo -e "Encoding=UTF-8" >> $FILE
+echo -e "Type=Application" >> $FILE
+echo -e "Terminal=false" >> $FILE
+echo -e "Name=DCMotorControl" >> $FILE
+echo -e "Exec=$DIR/startup.sh" >> $FILE
+echo -e "Comment=Yo-ho-ho" >> $FILE
+echo -e "Icon=$DIR/icons/icon.png" >> $FILE
+echo -e "Name[en]=DCMotorControl" >> $FILE
+cp $FILE ~/Desktop/

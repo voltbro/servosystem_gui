@@ -1,5 +1,6 @@
 #!/bin/bash -i
 
-echo "$PWD"
+DIR="$( cd "$( dirname "$0" )" && pwd )"
+echo "Script location: ${DIR}"
 
-/home/$USER/Labs/servosystem_gui/.venv/bin/python /home/$USER/Labs/servosystem_gui/main.py
+$DIR/.venv/bin/python $DIR/main.py

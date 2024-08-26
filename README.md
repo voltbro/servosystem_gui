@@ -2,15 +2,18 @@
 
 ## Установка: <br>
 ```
-cd ~ <br>
-git clone https://github.com/voltbro/servosystem_gui.git <br>
-cd servosystem_gui <br>
-./install.sh <br>
-sudo reboot <br>
+cd ~
+git clone https://github.com/voltbro/servosystem_gui.git
+cd servosystem_gui
+./install.sh
+sudo reboot
 ```
 ## Запуск <br>
+Первый способ:
 ```
-cd servosystem_gui <br>
-source .venv/bin/activate  <br>
-python3 main.py <br>
+cd servosystem_gui
+source .venv/bin/activate
+python3 main.py
 ```
+Второй способ:
+На рабочем столе кликните правой кнопкой мыши по иконке DCMotorControl и выберите Allow Launching. Затем дважды кликните по иконке, чтобы запустить программу.
