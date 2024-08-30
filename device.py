@@ -59,22 +59,22 @@ class Device():
 
     def get_data(self):
         data_lst = self.sp.get_data().split(" ") # 0 - time, 1 - ref, 2 - real
-        if data_lst[0] == OUT and len(data_lst) > 3:
+        if data_lst[0] == OUT and len(data_lst) > 4:
             try:
                 cur = float(data_lst[3])
             except:
                 cur = 0
                 # print(f"ebat: {data_lst[3]}")
-            return float(data_lst[2]), cur, float(data_lst[1])/1000
+            return float(data_lst[2]), cur, float(data_lst[1])/1000, float(data_lst[3])
         else:
             # print(data_lst)
-            return -1, -1, -1
+            return -1, -1, -1, -1
         
     def wait_step(self, delta):
         it = 0
         time.sleep(0.2)
         while True:
-            ref, real, t = self.get_data()
+            ref, real, t, d_ref = self.get_data()
             print(f"time: {t:.3f} | ref: {ref:.0f} | real: {real:.2f} | delta: {delta:.2f}")
             if np.abs(ref - real) > np.abs(delta):
                 time.sleep(0.002)

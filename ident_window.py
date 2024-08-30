@@ -21,7 +21,7 @@ from freq_resp import FreqResponce
 from device import Device
 from plot_widget import PlotWidget
 
-X_TIME_RANGE = 20
+# X_TIME_RANGE = 20
 X_FREQ_RANGE = 5
 STEP_DELTA = 0.05
 
@@ -53,6 +53,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_font_size = config['plot_font_size']
             self.plot_point_size = config['plot_point_size']
             self.plot_line_width = config['plot_line_width']
+            self.ident_plot_range = config['ident_plot_range']
+            self.icon_size = config['icon_size']
         except:
             self.sin_A = 10.0
             self.sin_freq = 1.0
@@ -64,6 +66,9 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_font_size = 36
             self.plot_point_size = 20
             self.plot_line_width = 3
+            self.ident_plot_range = 20.0
+            self.icon_size = 40
+
 
         # sin stuff
         self.t = 0
@@ -140,7 +145,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.b_lineEdit.setEnabled(False)
 
     def init_time_plot(self):
-        self.x_time_range = X_TIME_RANGE
+        self.x_time_range = self.ident_plot_range
         self.time_plot_graph = PlotWidget()#pg.PlotWidget()
         self.time_plot_graph.sigMouseClicked.connect(self.time_plot_clicked)
         self.leftLay.addWidget(self.time_plot_graph)
@@ -179,7 +184,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.sinProgress.setMaximumHeight(20)
         self.sinProgress.setVisible(False)
 
-        iconSize = QSize(40, 40)
+        iconSize = QSize(self.icon_size, self.icon_size)
         icon = qta.icon("fa.check", color='green')
         self.okLbl = QLabel()
         self.okLbl.setPixmap(icon.pixmap(iconSize))
@@ -413,12 +418,13 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
     
     def gen_sin(self):
         while self.stop_gen_sin == False:
+            print("gen_sin")
             if self.startModel_toggled == True:
                 self.sin_sig[0], self.sin_sig[1], self.t = self.fr.step_sin_model()
                 self.append_sig_vectors()
             elif self.startDevice_toggled == True:
                 while True:
-                    self.sin_sig[0], self.sin_sig[1], self.t = self.device.get_data()
+                    self.sin_sig[0], self.sin_sig[1], self.t, d_ref = self.device.get_data()
                     self.append_sig_vectors()
                     if self.device.get_data_lag() <= 2:
                         break
@@ -428,6 +434,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
 
     def update_time_plot(self):
         if self.t >= 0:
+            print("update_time_plot")
             self.time.append(self.t)
             while (self.time[-1] - self.time[0]) > self.x_time_range:
                 self.time = self.time[1:]

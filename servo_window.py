@@ -12,6 +12,8 @@ from PyQt5.QtCore import Qt, QTimer
 from forms.servo_form import Ui_Form
 from ident_window import IdentWidget
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy, QMessageBox, QLabel
+# from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5 import QtGui
 
 from plot_widget import PlotWidget
 from servo_analysys import ServoAnalysys
@@ -19,11 +21,18 @@ from signal_generator import SignalGenerator
 from motor_dynamics import MotorDynamics
 from device import Device
 
+try:
+    import OpenGL
+    pg.setConfigOption('useOpenGL', True)
+    pg.setConfigOption('enableExperimental', True)
+except Exception as e:
+    print(f"Enabling OpenGL failed with {e}. Will result in slow rendering. Try installing PyOpenGL.")
+
 X_ROOT_RANGE = 12.0
 Y_ROOT_RANGE = 11.5
 X_K_RANGE = 21
 Y_K_RANGE = 12
-X_RESP_RANGE = 10
+# X_RESP_RANGE = 10
 Y_RESP_RANGE = 5
 STEP_DELTA = 0.05
 
@@ -51,6 +60,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_font_size = config['plot_font_size']
             self.plot_point_size = config['plot_point_size']
             self.plot_line_width = config['plot_line_width']
+            self.servo_plot_range = config['servo_plot_range']
         except:
             self.delta = 1.0
             self.alpha = 0.7
@@ -60,6 +70,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_font_size = 36
             self.plot_point_size = 20
             self.plot_line_width = 3
+            self.servo_plot_range = 10.0
 
         self.servo = ServoAnalysys()
         self.servo.set_root_params(self.delta, self.alpha)
@@ -70,7 +81,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.sig_freq = 0.25
         self.t = 0
         self.sig_rate = 200
-        self.draw_rate = 100
+        self.draw_rate = 40
         self.ts = 1/self.sig_rate
         self.sig_gen = SignalGenerator(ts=self.ts, A=self.sig_A, freq=self.sig_freq)
         self.model = MotorDynamics(ts=self.ts,
@@ -135,6 +146,12 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.timer.setInterval(int(1000/self.draw_rate))
         self.timer.timeout.connect(self.update_resp_plot)
         self.first_timer_event = True
+
+        self.timer2 = QTimer()
+        self.timer2.setInterval(int(1000/self.sig_rate))
+        self.timer2.timeout.connect(self.gen_sig)
+
+        self.time_offset = 0.0
     
     def init_root_locus_plot(self):
         self.x_root_range = X_ROOT_RANGE
@@ -187,9 +204,12 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.draw_k_curves()
 
     def init_resp_plot(self):
-        self.x_resp_range = X_RESP_RANGE
+        self.x_resp_range = self.servo_plot_range
         self.y_resp_range = Y_RESP_RANGE
         self.resp_plot_graph = PlotWidget()
+        
+        # self.resp_plot_graph.disableAutoRange()
+        self.resp_plot_graph.setUpdatesEnabled = False
         self.resp_plot_graph.sigMouseClicked.connect(self.resp_plot_clicked)
         self.rightLay.addWidget(self.resp_plot_graph)
         self.resp_plot_graph.setBackground("w")
@@ -231,65 +251,88 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
 
     def update_resp_plot(self):
         if self.t >= 0:
+            
+            # print("update_resp_plot")
             if self.first_timer_event == True:
                 self.first_timer_event = False    
             else:
-                self.time.append(self.t)
-                while (self.time[-1] - self.time[0]) > self.x_resp_range:
-                    self.time = self.time[1:]
-                    self.ref_plot_vec = self.ref_plot_vec[1:]
-                    self.real_model_plot_vec = self.real_model_plot_vec[1:]
-                    self.real_device_plot_vec = self.real_device_plot_vec[1:]
-                    self.resp_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
+                self.time.append(self.t - self.time_offset)
+                if (self.time[-1] - self.time[0]) > self.x_resp_range:
+                    self.time_offset += self.x_resp_range
+                    self.time = [self.t - self.time_offset]
+                    self.ref_plot_vec = []
+                    self.real_model_plot_vec = []
+                    self.real_device_plot_vec = []
+                    # self.resp_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
+                # if (self.time[-1] - self.time[0]) > self.x_resp_range:
+                #     self.time = self.time[1:]
+                #     self.ref_plot_vec = self.ref_plot_vec[1:]
+                #     self.real_model_plot_vec = self.real_model_plot_vec[1:]
+                #     self.real_device_plot_vec = self.real_device_plot_vec[1:]
+                #     # self.resp_plot_graph.setXRange(self.time[0]-0.1, self.time[-1]+0.1)
+                
+                
                 
                 # sig stuff
+                
+                self.resp_plot_graph.disableAutoRange()
                 self.ref_plot_vec.append(self.ref_sig)
+                # start = time.time()
                 self.ref_line.setData(self.time, self.ref_plot_vec)
+                # end = time.time() - start ## собственно время работы программы
+                # print(f"{end:.5f}")
                 if self.startBoth_toggled == True or self.startModel_toggled == True:
                     self.real_model_plot_vec.append(self.real_model_sig)
                     self.real_model_line.setData(self.time, self.real_model_plot_vec)
                 if self.startBoth_toggled == True or self.startDevice_toggled == True:
                     self.real_device_plot_vec.append(self.real_device_sig)
                     self.real_device_line.setData(self.time, self.real_device_plot_vec)
+                # self.resp_plot_graph.autoRange()
+                
+                
+            
 
     def gen_sig(self):
-        while self.stop_gen_sig == False:
-            if self.startBoth_toggled == True:
-                while True:
-                    self.ref_sig, self.real_device_sig, self.t = self.device.get_data()
-                    if self.device.get_data_lag() <= 2:
-                        break
-                    time.sleep(0.0001)
-                # if self.sig_type == "square":
-                #     self.ref_sig, self.t = self.sig_gen.gen_square()
-                # elif self.sig_type == "sine":
-                #     self.ref_sig, self.t = self.sig_gen.gen_sin()
-                # elif self.sig_type == "triangle":
-                #     self.ref_sig, self.t = self.sig_gen.gen_triangle()
-                self.real_model_sig = self.model.step(self.ref_sig)
+        # while self.stop_gen_sig == False:
+        # print("gen_sig")
+        # start = time.time()
+        if self.startBoth_toggled == True:
+            while True:
+                self.ref_sig, self.real_device_sig, self.t, d_sig = self.device.get_data()
+                if self.device.get_data_lag() <= 2:
+                    break
+                time.sleep(0.0001)
+            u = np.array([self.ref_sig, 0])
+            self.real_model_sig = self.model.step(u)
 
-            elif self.startModel_toggled == True:
-                if self.sig_type == "square":
-                    self.ref_sig, self.t = self.sig_gen.gen_square()
-                elif self.sig_type == "sine":
-                    self.ref_sig, self.t = self.sig_gen.gen_sin()
-                elif self.sig_type == "triangle":
-                    self.ref_sig, self.t = self.sig_gen.gen_triangle()
-                self.real_model_sig = self.model.step(self.ref_sig)
+        elif self.startModel_toggled == True:
+            
+            if self.sig_type == "square":
+                self.ref_sig, self.t, d_sig = self.sig_gen.gen_square()
+            elif self.sig_type == "sine":
+                self.ref_sig, self.t, d_sig = self.sig_gen.gen_sin()
+            elif self.sig_type == "triangle":
+                self.ref_sig, self.t, d_sig = self.sig_gen.gen_triangle()
+            u = np.array([self.ref_sig, d_sig])
+            
+            self.real_model_sig = self.model.step(u)
+            
 
-            elif self.startDevice_toggled == True:
-                # if  self.device.is_ready() == True:
-                while True:
-                    self.ref_sig, self.real_device_sig, self.t = self.device.get_data()
-                    if self.device.get_data_lag() <= 2:
-                        break
-                    time.sleep(0.0001)
-                # self.device.reset_readiness()
+        elif self.startDevice_toggled == True:
+            # if  self.device.is_ready() == True:
+            while True:
+                self.ref_sig, self.real_device_sig, self.t, d_sig = self.device.get_data()
+                if self.device.get_data_lag() <= 2:
+                    break
+                time.sleep(0.0001)
+            # self.device.reset_readiness()
 
-            time.sleep(self.ts)
+        # time.sleep(self.ts)
             # end = time.time() - self.start ## собственно время работы программы
             # print(end) ## вывод времени
             # self.start = time.time()  
+        # end = time.time() - start ## собственно время работы программы
+        # print(f"{end:.5f}")
 
     def root_plot_clicked(self, e):
         mousePoint = self.root_plot_graph.getPlotItem().vb.mapSceneToView(e.pos())
@@ -403,20 +446,25 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             # self.fr.set_model_params(self.mot_J, self.mot_B, self.mot_k)
             
             # self.fr.reset()
+            self.resp_plot_graph.setMouseEnabled(x=False, y=False)
             self.reset_resp_plot()
             self.resp_plot_graph.setYRange(-self.sig_A*1.1, self.sig_A*1.3)
             
             self.timer.start()
-            th1 = threading.Thread(target=self.gen_sig, daemon=True)
-            th1.start()
+            self.timer2.start()
+            # th1 = threading.Thread(target=self.gen_sig, daemon=True)
+            # th1.start()
             
         else:
             self.stop_gen_sig = True
             self.startModel_toggled = False
 
             self.timer.stop()
+            self.timer2.stop()
+            self.time_offset = 0.0
             
             self.enable_widgets()
+            self.resp_plot_graph.setMouseEnabled(x=True, y=True)
             # self.startModelBtn.setEnabled(True)
             self.startModelBtn.setText("Start Model")
             self.startDeviceBtn.setEnabled(True)
@@ -444,6 +492,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
 
             self.sig_type = self.check_radio_btns()
             self.disable_widgets()
+            self.resp_plot_graph.setMouseEnabled(x=False, y=False)
             self.startModelBtn.setEnabled(False)
             self.startBothBtn.setEnabled(False)
             self.startDeviceBtn.setText("Stop Device")
@@ -472,9 +521,10 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                 self.device.start_triangle(self.sig_A, self.sig_freq)
             
 
-            th1 = threading.Thread(target=self.gen_sig, daemon=True)
-            th1.start()
+            # th1 = threading.Thread(target=self.gen_sig, daemon=True)
+            # th1.start()
             self.timer.start()
+            self.timer2.start()
 
             print("Start Device")
         else:
@@ -482,6 +532,8 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.stop_gen_sig = True
             # self.sin_type = DEVICE
             self.timer.stop()
+            self.timer2.stop()
+            self.time_offset = 0.0
 
             # self.device.sp.data = b""
             self.device.stop()
@@ -489,6 +541,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.device.disconnect()
 
             self.enable_widgets()
+            self.resp_plot_graph.setMouseEnabled(x=True, y=True)
             # self.startModelBtn.setEnabled(True)
             self.startDeviceBtn.setText("Start Device")
             self.startModelBtn.setEnabled(True)
@@ -516,6 +569,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
 
             self.sig_type = self.check_radio_btns()
             self.disable_widgets()
+            self.resp_plot_graph.setMouseEnabled(x=False, y=False)
             self.startModelBtn.setEnabled(False)
             self.startDeviceBtn.setEnabled(False)
             self.startBothBtn.setText("Stop")
@@ -549,9 +603,10 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                 self.device.start_triangle(self.sig_A, self.sig_freq)
             
 
-            th1 = threading.Thread(target=self.gen_sig, daemon=True)
-            th1.start()
+            # th1 = threading.Thread(target=self.gen_sig, daemon=True)
+            # th1.start()
             self.timer.start()
+            self.timer2.start()
 
             print("Start Device")
         else:
@@ -559,6 +614,8 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.stop_gen_sig = True
             # self.sin_type = DEVICE
             self.timer.stop()
+            self.timer2.stop()
+            self.time_offset = 0.0
 
             # self.device.sp.data = b""
             self.device.stop()
@@ -566,6 +623,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.device.disconnect()
 
             self.enable_widgets()
+            self.resp_plot_graph.setMouseEnabled(x=True, y=True)
             # self.startModelBtn.setEnabled(True)
             self.startBothBtn.setText("Start Both")
             self.startModelBtn.setEnabled(True)

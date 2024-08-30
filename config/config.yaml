@@ -1,16 +1,19 @@
 plot_font_size: 36
 plot_point_size: 20
 plot_line_width: 3
+icon_size: 40
 
 # --------------
 # IDENTIFICATION
 # --------------
-A: 5.0
+A: 10.0
 freq: 1.0
 
-J: 0.09
-B: 1.85
-k: 0.0
+J: 0.11
+B: 1.95
+k: 1.0
+
+ident_plot_range: 20.0
 
 # --------------
 # SERVO SYSTEM
@@ -20,3 +23,5 @@ alpha: 0.7
 
 kx: 16.0
 kv: 0.0
+
+servo_plot_range: 10.0

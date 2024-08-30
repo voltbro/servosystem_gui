@@ -17,15 +17,18 @@ class SignalGenerator():
     def gen_sin(self):
         self.t += self.ts
         sig = self.A * np.sin(self.freq * 2 * np.pi * self.t)
+        d_sig = 2 * np.pi * self.freq * self.A * np.cos(self.freq * 2 * np.pi * self.t)
         # print(f"{sig:.2f}, {self.t:.2f}")
-        return sig, self.t
+        return sig, self.t, d_sig
 
     def gen_square(self):
         self.t += self.ts
         sig = self.A * np.sign(np.sin(self.freq * 2 * np.pi * self.t))
-        return sig, self.t
+        d_sig = 0.0
+        return sig, self.t, d_sig
 
     def gen_triangle(self):
         self.t += self.ts
         sig = self.A - (2*self.A/np.pi) * np.arccos((np.cos(2*np.pi*self.freq*self.t - np.pi/2)))
-        return sig, self.t
+        d_sig = 2 * self.A * self.freq
+        return sig, self.t, d_sig

@@ -43,10 +43,10 @@ class FreqResponce():
         self.mot.reset_x()
 
     def step_sin_model(self):
-        u = self.gen_sin(self.sin_A, self.sin_f, self.sin_phi, self.t)
+        u = np.array([self.gen_sin(self.sin_A, self.sin_f, self.sin_phi, self.t)])
         self.t += self.ts
         y = self.mot.step(u)
-        return u, y, self.t
+        return u[0], y, self.t
     
     def calc_point_model(self, omega, J, B, k):
         A = 1/np.sqrt((-J * omega**2 + k)**2 + (B * omega)**2)

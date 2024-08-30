@@ -49,18 +49,29 @@ class MotorDynamics():
 
     def __update_model(self):
         if self.model_type == OPEN:
-            num = [1]
-            den = [self.J, self.B, self.k]
+            self.AA = np.array([[ 0.0,            1.0],
+                                [-self.k/self.J, -self.B/self.J]])
+            self.BB = np.array([[0.0],
+                                [1.0/self.J]])
+            self.CC = np.array([[1.0, 0.0]])
+            # num = [1]
+            # den = [self.J, self.B, self.k]
         else:
-            num = [self.kv, self.kx]
-            den = [self.J, self.B+self.kv, self.kx]
+            self.AA = np.array([[ 0.0,             1.0],
+                                [-self.kx/self.J, -(self.B+self.kv)/self.J]])
+            self.BB = np.array([[0.0,            0.0],
+                                [self.kx/self.J, self.kv/self.J]])
+            self.CC = np.array([[1, 0],
+                                [0, 1]])
+            # num = [self.kv, self.kx]
+            # den = [self.J, self.B+self.kv, self.kx]
 
-        W = ct.tf(num, den)
-        sys = ct.tf2ss(W)
-        # dsys = ct.c2d(sys, self.ts, 'foh')
-        self.AA = sys.A
-        self.BB = sys.B
-        self.CC = sys.C
+        # W = ct.tf(num, den)
+        # sys = ct.tf2ss(W)
+        # # dsys = ct.c2d(sys, self.ts, 'foh')
+        # self.AA = sys.A
+        # self.BB = sys.B
+        # self.CC = sys.C
 
     def reset_x(self):
         self.x = np.array([0, 0])
@@ -68,15 +79,16 @@ class MotorDynamics():
         self.pre_e = 0
 
     def step(self, u):
-        u = np.array([u])
+        # u = np.array([u])
         # self.x_ = np.matmul(self.AA, self.x) + np.matmul(self.BB, u)
         # self.y = np.matmul(self.CC, self.x)
         # self.x = self.x_
         # print(self.x[1][0])
         self.x_ = self.ode4.step(self.x, u)
-        self.y = np.matmul(self.CC, self.x_)
+        # self.y = np.matmul(self.CC, self.x_)
         self.x = self.x_
-        return self.y[0]#self.x[1]#, self.x[0]
+        # print(self.x_)
+        return self.x_[0] #self.y[0]#self.x[1]#, self.x[0]
 
     # def step_closedloop(self, ref):
         # # x_ref = np.array([0.0, ref])
