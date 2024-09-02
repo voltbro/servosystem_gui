@@ -61,6 +61,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_point_size = config['plot_point_size']
             self.plot_line_width = config['plot_line_width']
             self.servo_plot_range = config['servo_plot_range']
+            self.plot_draw_rate = config['plot_draw_rate']
         except:
             self.delta = 1.0
             self.alpha = 0.7
@@ -71,6 +72,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_point_size = 20
             self.plot_line_width = 3
             self.servo_plot_range = 10.0
+            self.plot_draw_rate = 25.0
 
         self.servo = ServoAnalysys()
         self.servo.set_root_params(self.delta, self.alpha)
@@ -81,7 +83,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.sig_freq = 0.25
         self.t = 0
         self.sig_rate = 200
-        self.draw_rate = 40
+        self.draw_rate = self.plot_draw_rate
         self.ts = 1/self.sig_rate
         self.sig_gen = SignalGenerator(ts=self.ts, A=self.sig_A, freq=self.sig_freq)
         self.model = MotorDynamics(ts=self.ts,

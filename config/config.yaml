@@ -1,7 +1,7 @@
-plot_font_size: 36
+plot_font_size: 22
 plot_point_size: 10
-plot_line_width: 3
-icon_size: 40
+plot_line_width: 2
+icon_size: 20
 
 # --------------
 # IDENTIFICATION
@@ -25,3 +25,4 @@ kx: 16.0
 kv: 0.0
 
 servo_plot_range: 10.0
+plot_draw_rate: 25
