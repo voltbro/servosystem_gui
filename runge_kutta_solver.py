@@ -16,6 +16,7 @@ class RungeKuttaSolver():
         self.h = ts
 
     def step(self, x, u):
+        # print(u[1])
         Bu = np.matmul(self.B, u)
         k1 = np.matmul(self.A, x) + Bu
         k2 = np.matmul(self.A, (x+k1*self.h/2)) + Bu

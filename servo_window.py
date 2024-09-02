@@ -302,7 +302,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
                 if self.device.get_data_lag() <= 2:
                     break
                 time.sleep(0.0001)
-            u = np.array([self.ref_sig, 0])
+            u = np.array([self.ref_sig, d_sig])
             self.real_model_sig = self.model.step(u)
 
         elif self.startModel_toggled == True:
@@ -314,7 +314,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             elif self.sig_type == "triangle":
                 self.ref_sig, self.t, d_sig = self.sig_gen.gen_triangle()
             u = np.array([self.ref_sig, d_sig])
-            
+            # print(d_sig)
             self.real_model_sig = self.model.step(u)
             
 

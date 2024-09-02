@@ -65,7 +65,7 @@ class Device():
             except:
                 cur = 0
                 # print(f"ebat: {data_lst[3]}")
-            return float(data_lst[2]), cur, float(data_lst[1])/1000, float(data_lst[3])
+            return float(data_lst[2]), cur, float(data_lst[1])/1000, float(data_lst[4])
         else:
             # print(data_lst)
             return -1, -1, -1, -1
