@@ -21,12 +21,12 @@ from signal_generator import SignalGenerator
 from motor_dynamics import MotorDynamics
 from device import Device
 
-try:
-    import OpenGL
-    pg.setConfigOption('useOpenGL', True)
-    pg.setConfigOption('enableExperimental', True)
-except Exception as e:
-    print(f"Enabling OpenGL failed with {e}. Will result in slow rendering. Try installing PyOpenGL.")
+# try:
+#     import OpenGL
+#     pg.setConfigOption('useOpenGL', True)
+#     pg.setConfigOption('enableExperimental', True)
+# except Exception as e:
+#     print(f"Enabling OpenGL failed with {e}. Will result in slow rendering. Try installing PyOpenGL.")
 
 X_ROOT_RANGE = 12.0
 Y_ROOT_RANGE = 11.5

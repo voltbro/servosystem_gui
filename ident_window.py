@@ -418,7 +418,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
     
     def gen_sin(self):
         while self.stop_gen_sin == False:
-            print("gen_sin")
+            # print("gen_sin")
             if self.startModel_toggled == True:
                 self.sin_sig[0], self.sin_sig[1], self.t = self.fr.step_sin_model()
                 self.append_sig_vectors()
@@ -434,7 +434,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
 
     def update_time_plot(self):
         if self.t >= 0:
-            print("update_time_plot")
+            # print("update_time_plot")
             self.time.append(self.t)
             while (self.time[-1] - self.time[0]) > self.x_time_range:
                 self.time = self.time[1:]

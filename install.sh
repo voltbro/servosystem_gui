@@ -20,6 +20,7 @@ pip install pyqtgraph
 pip install control
 pip install QtAwesome
 pip install pyserial
+# pip install PyOpenGL
 
 
 FILE="DCMotorControl.desktop"
