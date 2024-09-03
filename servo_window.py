@@ -38,7 +38,7 @@ STEP_DELTA = 0.05
 
 # DELTA = 1
 # ALPHA = np.pi/4
-K_RANGE = 40
+K_RANGE = 80
 
 class ServoWidget(QtWidgets.QWidget, Ui_Form):
     def __init__(self, *args, obj=None, **kwargs):
@@ -62,6 +62,10 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_line_width = config['plot_line_width']
             self.servo_plot_range = config['servo_plot_range']
             self.plot_draw_rate = config['plot_draw_rate']
+            self.lambda_plot_range_x = config['lambda_plot_range_x']
+            self.lambda_plot_range_y = config['lambda_plot_range_y']
+            self.k_plot_range_x = config['k_plot_range_x']
+            self.k_plot_range_y = config['k_plot_range_y']
         except:
             self.delta = 1.0
             self.alpha = 0.7
@@ -156,8 +160,8 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.time_offset = 0.0
     
     def init_root_locus_plot(self):
-        self.x_root_range = X_ROOT_RANGE
-        self.y_root_range = Y_ROOT_RANGE
+        self.x_root_range = self.lambda_plot_range_x
+        self.y_root_range = self.lambda_plot_range_y
         self.root_plot_graph = PlotWidget()
         self.root_plot_graph.sigMouseClicked.connect(self.root_plot_clicked)
         self.leftLay.addWidget(self.root_plot_graph)
@@ -169,6 +173,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.root_plot_graph.showGrid(x=True, y=True)
         self.root_plot_graph.setYRange(-self.y_root_range, self.y_root_range)
         self.root_plot_graph.setXRange(-self.x_root_range, 0.2)
+        self.root_plot_graph.setMouseEnabled(x=False, y=False)
 
         pen = pg.mkPen(None)
         pen_axis = pg.mkPen(color=(0, 0, 0), width=1)
@@ -181,8 +186,8 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.draw_root_field(self.field_line, self.alpha, self.delta)
 
     def init_k_plot(self):
-        self.x_k_range = X_K_RANGE
-        self.y_k_range = Y_K_RANGE
+        self.x_k_range = self.k_plot_range_x
+        self.y_k_range = self.k_plot_range_y
         self.k_plot_graph = PlotWidget()
         self.k_plot_graph.sigMouseClicked.connect(self.k_plot_clicked)
         self.leftLay.addWidget(self.k_plot_graph)
@@ -194,6 +199,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.k_plot_graph.showGrid(x=True, y=True)
         self.k_plot_graph.setYRange(0, self.y_k_range)
         self.k_plot_graph.setXRange(0, self.x_k_range)
+        self.k_plot_graph.setMouseEnabled(x=False, y=False)
 
         pen = pg.mkPen(None)
         pen_k = pg.mkPen(color=(0, 0, 0), width=2)
@@ -222,6 +228,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.resp_plot_graph.showGrid(x=True, y=True)
         self.resp_plot_graph.setYRange(-self.y_resp_range, self.y_resp_range)
         self.resp_plot_graph.setXRange(-self.x_resp_range, 0.2)
+
 
         pen_ref = pg.mkPen(color=(0, 190, 0), width=self.plot_line_width)
         pen_model_real = pg.mkPen(color=(0, 0, 190), width=self.plot_line_width)
@@ -719,6 +726,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
 
         self.lambda1, self.lambda2 = self.servo.calc_lambda(self.kx, self.kv)
         self.draw_k(self.kx, self.kv)
+        self.draw_k_curves()
         self.root_pos_re = [self.lambda1.real, self.lambda2.real]
         self.root_pos_im = [self.lambda1.imag, self.lambda2.imag]
         self.root_line.setData(self.root_pos_re, self.root_pos_im)
