@@ -95,7 +95,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.rate = 200
         self.ts = 1/self.rate
 
-        self.acceptable_sin = (N_PERIODS*2*np.pi)/(self.sin_freq*self.ts)
+        self.acceptable_sin = (N_PERIODS)/(self.sin_freq*self.ts)
         self.len_sin_points = 0
         self.sin_plot_vec = [[0.0],[0.0]]
         self.amp_model_vec = []
@@ -348,7 +348,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.read_line_edits()
             self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.3)
             self.fr.set_sin_params(self.sin_A, self.sin_freq)
-            self.acceptable_sin = (N_PERIODS*2*np.pi)/(self.sin_freq*self.ts)
+            self.acceptable_sin = (N_PERIODS)/(self.sin_freq*self.ts)
             self.len_sin_points = 0
             self.device.connect()
             time.sleep(0.1)
@@ -403,6 +403,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
                 self.sin_sig_vec[2] = self.sin_sig_vec[2][:last_zero]
 
             # plt.plot(self.sin_sig_vec[2], self.sin_sig_vec[0])
+            # plt.plot(self.sin_sig_vec[2], self.sin_sig_vec[1])
             # plt.show()
 
             print("Stop Device")
@@ -476,6 +477,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.sin_sig_vec[1].append(self.sin_sig[1])
             self.sin_sig_vec[2].append(self.t)
             self.len_sin_points += 1
+            # print(f"{self.acceptable_sin} {len(self.sin_sig_vec[0])}")
             if len(self.sin_sig_vec[0]) > self.acceptable_sin:
                 self.sin_sig_vec[0] = self.sin_sig_vec[0][1:]
                 self.sin_sig_vec[1] = self.sin_sig_vec[1][1:]
@@ -514,7 +516,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
                 self.sin_plot_vec[i].append(self.sin_sig[i])
                 self.time_line[i].setData(self.time, self.sin_plot_vec[i])
 
-            progress = int(100*self.len_sin_points/(1.3*self.acceptable_sin/(2*np.pi)))
+            progress = int(100*self.len_sin_points/(1.3*self.acceptable_sin))
             self.sinProgress.setValue(progress)
             if progress >= 99:
                 self.sinProgress.setVisible(False)
