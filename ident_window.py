@@ -31,11 +31,14 @@ DEVICE = 1
 FRIC_K = 0.82
 FRIC_OFFSET = 0
 
+N_PERIODS = 5
+
 class IdentWidget(QtWidgets.QWidget, Ui_Form):
     def __init__(self, *args, obj=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle("Identification")
+        # self.setStyleSheet("background-color: yellow;") 
 
         # current_working_directory = os.getcwd()
         current_working_directory = os.path.dirname(__file__)
@@ -49,12 +52,15 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.mot_J = config['J']
             self.mot_B = config['B']
             self.mot_k = config['k']
-            
+
+            self.theme = config['theme']
             self.plot_font_size = config['plot_font_size']
             self.plot_point_size = config['plot_point_size']
             self.plot_line_width = config['plot_line_width']
             self.ident_plot_range = config['ident_plot_range']
             self.icon_size = config['icon_size']
+            self.font_size = config['font_size']
+            self.freq_plot_range = config['freq_plot_range']
         except:
             self.sin_A = 10.0
             self.sin_freq = 1.0
@@ -63,11 +69,25 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.mot_B = 1.0
             self.mot_k = 1.0
 
+            self.theme = "light"
+            self.font_size = 20
             self.plot_font_size = 36
             self.plot_point_size = 20
             self.plot_line_width = 3
             self.ident_plot_range = 20.0
             self.icon_size = 40
+            self.freq_plot_range = 3.0
+
+        if self.theme == "dark":
+            self.plot_color = [10, 10, 10]
+            self.ref_line_color = [254, 105, 40]
+            self.real1_line_color = [19, 169, 254]
+            self.real2_line_color = [242,15,233]
+        else:
+            self.plot_color = [255, 255, 255]
+            self.ref_line_color = [0, 190, 0]
+            self.real1_line_color = [0, 0, 190]
+            self.real2_line_color = [190,0,0]
 
 
         # sin stuff
@@ -75,7 +95,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.rate = 200
         self.ts = 1/self.rate
 
-        self.acceptable_sin = (20*np.pi)/(self.sin_freq*self.ts)
+        self.acceptable_sin = (N_PERIODS*2*np.pi)/(self.sin_freq*self.ts)
         self.len_sin_points = 0
         self.sin_plot_vec = [[0.0],[0.0]]
         self.amp_model_vec = []
@@ -149,15 +169,23 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.time_plot_graph = PlotWidget()#pg.PlotWidget()
         self.time_plot_graph.sigMouseClicked.connect(self.time_plot_clicked)
         self.leftLay.addWidget(self.time_plot_graph)
-        self.time_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        # 
+        self.time_plot_vb = self.time_plot_graph.getViewBox()
+        self.time_plot_vb.setBackgroundColor(self.plot_color)
+        
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+        else:
+            self.time_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+
+        self.time_plot_graph.addLegend(labelTextSize=f'{self.font_size}pt', labelTextColor=None)
         self.time_plot_graph.setLabel("bottom", "Time (sec)", **styles)
-        self.time_plot_graph.addLegend()
-        self.time_plot_graph.showGrid(x=True, y=True)
+        self.time_plot_graph.showGrid(x=True, y=True, alpha=0.1)
         self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.1+5.5)
         self.time_plot_graph.setXRange(0, self.x_time_range)
 
-        pen = [pg.mkPen(color=(0, 190, 0), width=self.plot_line_width), pg.mkPen(color=(0, 0, 190), width=self.plot_line_width)]
+        pen = [pg.mkPen(color=tuple(self.ref_line_color), width=self.plot_line_width-1), pg.mkPen(color=tuple(self.real1_line_color), width=self.plot_line_width)]
 
         self.time = [0]
         self.time_line = [self.plot_line(self.time_plot_graph, "Voltage [v]", self.time, self.sin_plot_vec[0], pen[0], None),
@@ -198,35 +226,53 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.x_freq_range = X_FREQ_RANGE
         self.amp_plot_graph = PlotWidget()
         self.rightLay.addWidget(self.amp_plot_graph)
-        self.amp_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        # self.amp_plot_graph.setBackground("w")
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+        else:
+            self.amp_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.amp_plot_graph.setLabel("left", "Amplitude", **styles)
         self.amp_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
-        self.amp_plot_graph.addLegend(offset=(0, 10))
-        self.amp_plot_graph.showGrid(x=True, y=True)
+        self.amp_plot_graph.addLegend(labelTextSize=f'{self.font_size}pt', labelTextColor=None, offset=(0, 10))
+        self.amp_plot_graph.showGrid(x=True, y=True, alpha=0.1)
+        self.amp_plot_graph.setYRange(0, 1.2)
+        self.amp_plot_graph.setXRange(0, self.freq_plot_range)
+        self.amp_plot_graph.setMouseEnabled(x=False, y=False)
+        self.amp_plot_vb = self.amp_plot_graph.getViewBox()
+        self.amp_plot_vb.setBackgroundColor(self.plot_color)
 
         amp_pen = pg.mkPen(None)
 
         self.freq = [0]
-        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Model", self.time, self.amp_model_vec, amp_pen, "r", self.plot_point_size)
-        self.amp_device_line = self.plot_line(self.amp_plot_graph, "Device", self.time, self.amp_device_vec, amp_pen, "b", self.plot_point_size)
+        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Model", self.time, self.amp_model_vec, amp_pen, tuple(self.real1_line_color), self.plot_point_size)
+        self.amp_device_line = self.plot_line(self.amp_plot_graph, "Device", self.time, self.amp_device_vec, amp_pen, (210, 0, 0), self.plot_point_size)
 
     def init_phase_plot(self):
         self.x_freq_range = X_FREQ_RANGE
         self.phase_plot_graph = PlotWidget()
         pg.setConfigOptions(antialias = True)
         self.rightLay.addWidget(self.phase_plot_graph)
-        self.phase_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        # self.phase_plot_graph.setBackground("w")
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+        else:
+            self.phase_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.phase_plot_graph.setLabel("left", "Phase Lag", **styles)
         self.phase_plot_graph.setLabel("bottom", "Freq (hz)", **styles)
-        self.phase_plot_graph.showGrid(x=True, y=True)
+        self.phase_plot_graph.showGrid(x=True, y=True, alpha=0.1)
+        self.phase_plot_graph.setYRange(-3.14, 0)
+        self.phase_plot_graph.setXRange(0, self.freq_plot_range)
+        self.phase_plot_graph.setMouseEnabled(x=False, y=False)
+        self.phase_plot_vb = self.phase_plot_graph.getViewBox()
+        self.phase_plot_vb.setBackgroundColor(self.plot_color)
 
         phase_pen = pg.mkPen(None)
 
         # self.freq = [0]
-        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, "r", self.plot_point_size)
-        self.phase_device_line = self.plot_line(self.phase_plot_graph, "Device", self.time, self.phase_device_vec, phase_pen, "b", self.plot_point_size)
+        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, tuple(self.real1_line_color), self.plot_point_size)
+        self.phase_device_line = self.plot_line(self.phase_plot_graph, "Device", self.time, self.phase_device_vec, phase_pen, (210, 0, 0), self.plot_point_size)
 
         
     def reset_time_plot(self):
@@ -302,16 +348,16 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.read_line_edits()
             self.time_plot_graph.setYRange(-self.sin_A*1.1, self.sin_A*1.3)
             self.fr.set_sin_params(self.sin_A, self.sin_freq)
-            self.acceptable_sin = (20*np.pi)/(self.sin_freq*self.ts)
+            self.acceptable_sin = (N_PERIODS*2*np.pi)/(self.sin_freq*self.ts)
             self.len_sin_points = 0
             self.device.connect()
             time.sleep(0.1)
             self.device.stop()
             self.device.set_k(16, 0)
             self.device.set_fric(FRIC_K, FRIC_OFFSET)
-            self.device.start_step(0)
-            self.device.wait_step(STEP_DELTA)
-            time.sleep(0.2)
+            # self.device.start_step(0)
+            # self.device.wait_step(STEP_DELTA)
+            # time.sleep(0.2)
             self.device.set_k(self.mot_k, 0)
             self.device.start_sin_u(self.sin_A, self.sin_freq)
 
@@ -338,6 +384,27 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.sinProgress.setVisible(False)
             self.startDeviceBtn.setText("Start Device")
             self.enable_line_edits()
+
+            # cut from the end until ref signal crosses zero
+            # import matplotlib.pyplot as plt
+
+            last_zero = 0
+            for i in range(len(self.sin_sig_vec[0])-1, -1, -1):
+                if np.abs(self.sin_sig_vec[0][i]) <= self.sin_A/70:
+                    last_zero = i
+                    break
+            if self.sin_sig_vec[2][0] > self.sin_sig_vec[2][1]:
+                self.sin_sig_vec[0] = self.sin_sig_vec[0][1:last_zero]
+                self.sin_sig_vec[1] = self.sin_sig_vec[1][1:last_zero]
+                self.sin_sig_vec[2] = self.sin_sig_vec[2][1:last_zero]
+            else:
+                self.sin_sig_vec[0] = self.sin_sig_vec[0][:last_zero]
+                self.sin_sig_vec[1] = self.sin_sig_vec[1][:last_zero]
+                self.sin_sig_vec[2] = self.sin_sig_vec[2][:last_zero]
+
+            # plt.plot(self.sin_sig_vec[2], self.sin_sig_vec[0])
+            # plt.show()
+
             print("Stop Device")
 
     def putPointBtn_clicked(self):
@@ -380,13 +447,13 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.freq_plots_autoscale()
 
     def freq_plots_autoscale(self):
-        amv = self.amp_plot_graph.getViewBox()
-        amv.enableAutoRange(axis='y', enable=True)
-        amv.enableAutoRange(axis='x', enable=True)
+        # amv = self.amp_plot_graph.getViewBox()
+        self.amp_plot_vb.enableAutoRange(axis='y', enable=True)
+        # amv.enableAutoRange(axis='x', enable=True)
 
-        pmv = self.phase_plot_graph.getViewBox()
-        pmv.enableAutoRange(axis='y', enable=True)
-        pmv.enableAutoRange(axis='x', enable=True)
+        # pmv = self.phase_plot_graph.getViewBox()
+        # pmv.enableAutoRange(axis='y', enable=True)
+        # pmv.enableAutoRange(axis='x', enable=True)
 
     def clearBtn_clicked(self):
         self.draw_pressed = False
@@ -456,12 +523,18 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         
 
     def plot_line(self, graph, name, time, data, pen, brush, symbol_size=0.0):
+        if self.theme == 'dark':
+            symbolPen = 'black'
+        else:
+            symbolPen = 'white'
+
         return graph.plot(
             time,
             data,
             name=name,
             pen=pen,
             symbol="o",
+            symbolPen =symbolPen,
             symbolSize=symbol_size,
             symbolBrush=brush,
         )

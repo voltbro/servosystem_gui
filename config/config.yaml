@@ -1,3 +1,5 @@
+theme: "dark" # "light" # "dark"
+font_size: 20
 plot_font_size: 22
 plot_point_size: 10
 plot_line_width: 2
@@ -9,11 +11,12 @@ icon_size: 20
 A: 10.0
 freq: 1.0
 
-J: 0.11
-B: 1.95
+J: 0.2 # 0.11
+B: 0.5 # 1.95
 k: 1.0
 
-ident_plot_range: 20.0
+ident_plot_range: 15.0
+freq_plot_range: 3.0
 
 # --------------
 # SERVO SYSTEM
@@ -24,9 +27,9 @@ alpha: 0.7
 kx: 16.0
 kv: 0.0
 
-lambda_plot_range_x: 40
-lambda_plot_range_y: 40
+lambda_plot_range_x: 22
+lambda_plot_range_y: 25
 k_plot_range_x: 350
-k_plot_range_y: 40
+k_plot_range_y: 15
 servo_plot_range: 10.0
 plot_draw_rate: 25

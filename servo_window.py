@@ -66,6 +66,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.lambda_plot_range_y = config['lambda_plot_range_y']
             self.k_plot_range_x = config['k_plot_range_x']
             self.k_plot_range_y = config['k_plot_range_y']
+            self.theme = config['theme']
         except:
             self.delta = 1.0
             self.alpha = 0.7
@@ -77,6 +78,19 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.plot_line_width = 3
             self.servo_plot_range = 10.0
             self.plot_draw_rate = 25.0
+            self.theme = "light"
+
+        if self.theme == "dark":
+            self.plot_color = [10, 10, 10]
+            self.ref_line_color = [254, 105, 40]
+            self.real1_line_color = [19, 169, 254]
+            self.real2_line_color = [242,15,233]
+        else:
+            self.plot_color = [255, 255, 255]
+            self.ref_line_color = [0, 190, 0]
+            self.real1_line_color = [0, 0, 190]
+            self.real2_line_color = [190,0,0]
+
 
         self.servo = ServoAnalysys()
         self.servo.set_root_params(self.delta, self.alpha)
@@ -165,19 +179,29 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.root_plot_graph = PlotWidget()
         self.root_plot_graph.sigMouseClicked.connect(self.root_plot_clicked)
         self.leftLay.addWidget(self.root_plot_graph)
-        self.root_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        self.root_plot_vb = self.root_plot_graph.getViewBox()
+        self.root_plot_vb.setBackgroundColor(self.plot_color)
+        
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+            pen_axis = pg.mkPen(color=(150, 150, 150), width=1)
+            pen_field = pg.mkPen(color=(150, 150, 150), width=2)
+        else:
+            self.root_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+            pen_axis = pg.mkPen(color=(0, 0, 0), width=1)
+            pen_field = pg.mkPen(color=(0, 0, 0), width=2)
+
         self.root_plot_graph.setLabel("left", "Im", **styles)
         self.root_plot_graph.setLabel("bottom", "Re", **styles)
         # self.root_plot_graph.addLegend()
-        self.root_plot_graph.showGrid(x=True, y=True)
+        self.root_plot_graph.showGrid(x=True, y=True, alpha=0.1)
         self.root_plot_graph.setYRange(-self.y_root_range, self.y_root_range)
         self.root_plot_graph.setXRange(-self.x_root_range, 0.2)
         self.root_plot_graph.setMouseEnabled(x=False, y=False)
 
         pen = pg.mkPen(None)
-        pen_axis = pg.mkPen(color=(0, 0, 0), width=1)
-        pen_field = pg.mkPen(color=(0, 0, 0), width=2)
+        
         
         self.im_line = self.plot_line(self.root_plot_graph, "", self.im_x_line, self.im_y_line, pen_axis, "b", 0.0)
         self.re_line = self.plot_line(self.root_plot_graph, "", self.re_x_line, self.re_y_line, pen_axis, "b", 0.0)
@@ -191,19 +215,27 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.k_plot_graph = PlotWidget()
         self.k_plot_graph.sigMouseClicked.connect(self.k_plot_clicked)
         self.leftLay.addWidget(self.k_plot_graph)
-        self.k_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        # self.k_plot_graph.setBackground("w")
+        self.root_plot_vb = self.k_plot_graph.getViewBox()
+        self.root_plot_vb.setBackgroundColor(self.plot_color)
+
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+            pen_k = pg.mkPen(color=(150, 150, 150), width=2)
+        else:
+            self.k_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+            pen_k = pg.mkPen(color=(0, 0, 0), width=2)
         self.k_plot_graph.setLabel("left", "k_v", **styles)
         self.k_plot_graph.setLabel("bottom", "k_x", **styles)
         # self.k_plot_graph.addLegend()
-        self.k_plot_graph.showGrid(x=True, y=True)
-        self.k_plot_graph.setYRange(0, self.y_k_range)
+        self.k_plot_graph.showGrid(x=True, y=True, alpha=0.1)
+        self.k_plot_graph.setYRange(-0.5, self.y_k_range)
         self.k_plot_graph.setXRange(0, self.x_k_range)
         self.k_plot_graph.setMouseEnabled(x=False, y=False)
 
         pen = pg.mkPen(None)
-        pen_k = pg.mkPen(color=(0, 0, 0), width=2)
-
+        
         self.root_pos_re = []
         self.k_line = self.plot_line(self.k_plot_graph, "1", [], [], pen_k, "r", self.plot_point_size)
         self.k1_line = self.plot_line(self.k_plot_graph, "1", self.root_pos_re, [], pen_k, "r", 0.0)
@@ -220,25 +252,31 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.resp_plot_graph.setUpdatesEnabled = False
         self.resp_plot_graph.sigMouseClicked.connect(self.resp_plot_clicked)
         self.rightLay.addWidget(self.resp_plot_graph)
-        self.resp_plot_graph.setBackground("w")
-        styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
+        self.root_plot_vb = self.resp_plot_graph.getViewBox()
+        self.root_plot_vb.setBackgroundColor(self.plot_color)
+        # self.resp_plot_graph.setBackground("w")
+        if self.theme == "dark":
+            styles = {"color": "white", "font-size": f"{self.plot_font_size}px"}
+        else:
+            self.resp_plot_graph.setBackground("w")
+            styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.resp_plot_graph.setLabel("left", "Angle [rad]", **styles)
         self.resp_plot_graph.setLabel("bottom", "Time [sec]", **styles)
         self.resp_plot_graph.addLegend()
-        self.resp_plot_graph.showGrid(x=True, y=True)
+        self.resp_plot_graph.showGrid(x=True, y=True, alpha=0.1)
         self.resp_plot_graph.setYRange(-self.y_resp_range, self.y_resp_range)
         self.resp_plot_graph.setXRange(-self.x_resp_range, 0.2)
 
 
-        pen_ref = pg.mkPen(color=(0, 190, 0), width=self.plot_line_width)
-        pen_model_real = pg.mkPen(color=(0, 0, 190), width=self.plot_line_width)
-        pen_device_real = pg.mkPen(color=(190, 0, 0), width=self.plot_line_width)
+        pen_ref = pg.mkPen(color=tuple(self.ref_line_color), width=self.plot_line_width)
+        pen_model_real = pg.mkPen(color=tuple(self.real1_line_color), width=self.plot_line_width)
+        pen_device_real = pg.mkPen(color=tuple(self.real2_line_color), width=self.plot_line_width)
 
         self.time = []
 
-        self.ref_line = self.plot_line(self.resp_plot_graph, "Ref", self.time, [], pen_ref, "r", 0.0)
-        self.real_model_line = self.plot_line(self.resp_plot_graph, "Model", self.time, [], pen_model_real, "g", 0.0)
-        self.real_device_line = self.plot_line(self.resp_plot_graph, "Device", self.time, [], pen_device_real, "b", 0.0)
+        self.ref_line = self.plot_line(self.resp_plot_graph, "Ref", self.time, [], pen_ref, tuple(self.ref_line_color), 0.0)
+        self.real_model_line = self.plot_line(self.resp_plot_graph, "Model", self.time, [], pen_model_real, tuple(self.real1_line_color), 0.0)
+        self.real_device_line = self.plot_line(self.resp_plot_graph, "Device", self.time, [], pen_device_real, tuple(self.real2_line_color), 0.0)
 
         xMouseLbl = QLabel("X: ")
         yMouseLbl = QLabel("Y: ")
@@ -518,6 +556,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.device.set_fric(1.0, 20)
             self.device.start_step(0)
             self.device.wait_step(STEP_DELTA)
+            time.sleep(0.3)
             self.device.set_k(self.kx, self.kv)
             if self.sig_type == "square":
                 # self.ref_sig, self.t = self.sig_gen.gen_square()
@@ -707,12 +746,18 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         self.k_line.setData([kx], [kv])
 
     def plot_line(self, graph, name, time, data, pen, brush, symbol_size=0.0):
+        if self.theme == 'dark':
+            symbolPen = 'black'
+        else:
+            symbolPen = 'white'
+
         return graph.plot(
             time,
             data,
             name=name,
             pen=pen,
             symbol="o",
+            symbolPen =symbolPen,
             symbolSize=symbol_size,
             symbolBrush=brush,
         )
