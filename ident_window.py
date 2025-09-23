@@ -99,8 +99,11 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.len_sin_points = 0
         self.sin_plot_vec = [[0.0],[0.0]]
         self.amp_model_vec = []
+        self.amp_model2_vec = []
         self.phase_model_vec = []
+        self.phase_model2_vec = []
         self.omega_model_vec = []
+        self.omega_model2_vec = []
         self.amp_device_vec = []
         self.phase_device_vec = []
         self.omega_device_vec = []
@@ -245,7 +248,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         amp_pen = pg.mkPen(None)
 
         self.freq = [0]
-        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Model", self.time, self.amp_model_vec, amp_pen, tuple(self.real1_line_color), self.plot_point_size)
+        self.amp_model_line = self.plot_line(self.amp_plot_graph, "Diff Eq Model", self.time, self.amp_model_vec, amp_pen, tuple(self.ref_line_color), self.plot_point_size)
+        self.amp_model2_line = self.plot_line(self.amp_plot_graph, "Physical Model", self.time, self.amp_model2_vec, amp_pen, tuple(self.real1_line_color), self.plot_point_size)
         self.amp_device_line = self.plot_line(self.amp_plot_graph, "Device", self.time, self.amp_device_vec, amp_pen, (210, 0, 0), self.plot_point_size)
 
     def init_phase_plot(self):
@@ -271,7 +275,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         phase_pen = pg.mkPen(None)
 
         # self.freq = [0]
-        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, tuple(self.real1_line_color), self.plot_point_size)
+        self.phase_model_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model_vec, phase_pen, tuple(self.ref_line_color), self.plot_point_size)
+        self.phase_model2_line = self.plot_line(self.phase_plot_graph, "Model", self.time, self.phase_model2_vec, phase_pen, tuple(self.real1_line_color), self.plot_point_size)
         self.phase_device_line = self.plot_line(self.phase_plot_graph, "Device", self.time, self.phase_device_vec, phase_pen, (210, 0, 0), self.plot_point_size)
 
         
@@ -286,6 +291,8 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.phase_model_line.clear()
         self.amp_model_line.setData([], [])
         self.phase_model_line.setData([], [])
+        self.amp_model2_line.setData([], [])
+        self.phase_model2_line.setData([], [])
         self.amp_device_line.setData([], [])
         self.phase_device_line.setData([], [])
         
@@ -301,7 +308,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.putPointBtn.setEnabled(False)
             self.drawBtn.setEnabled(False)
             self.clearBtn.setEnabled(False)
-            self.sinProgress.setVisible(False)
+            self.sinProgress.setVisible(True)
             self.okLbl.setVisible(False)
             self.startModelBtn.setText("Stop Model")
             self.fr.set_sin_params(self.sin_A, self.sin_freq)
@@ -310,6 +317,9 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
 
             self.fr.reset()
             self.reset_time_plot()
+
+            self.len_sin_points = 0
+            self.acceptable_sin = (N_PERIODS)/(self.sin_freq*self.ts)
             
             th1 = threading.Thread(target=self.gen_sin, daemon=True)
             th1.start()
@@ -326,6 +336,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
             self.putPointBtn.setEnabled(True)
             self.drawBtn.setEnabled(True)
             self.clearBtn.setEnabled(True)
+            self.sinProgress.setVisible(False)
 
     def startDeviceBtn_clicked(self):
         if self.startDevice_toggled == False:
@@ -411,13 +422,17 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
     def putPointBtn_clicked(self):
         self.read_line_edits()
         if self.sin_type == MODEL:
-            self.fr.set_model_params(self.mot_J, self.mot_B, self.mot_k)
-            amp, phase = self.fr.calc_point_model(self.sin_freq*(2*np.pi), self.mot_J, self.mot_B, self.mot_k)
-            self.amp_model_vec.append(amp)
-            self.phase_model_vec.append(phase)
-            self.omega_model_vec.append(self.sin_freq)
-            self.amp_model_line.setData(self.omega_model_vec, self.amp_model_vec)
-            self.phase_model_line.setData(self.omega_model_vec, self.phase_model_vec)
+            # self.fr.set_model_params(self.mot_J, self.mot_B, self.mot_k)
+            # amp, phase = self.fr.calc_point_model(self.sin_freq*(2*np.pi), self.mot_J, self.mot_B, self.mot_k)
+            amp, phase = self.fr.calc_point_real(sig1=self.sin_sig_vec[0], 
+                                                 sig2=self.sin_sig_vec[1], 
+                                                 t=self.sin_sig_vec[2], 
+                                                 period=1/self.sin_freq)
+            self.amp_model2_vec.append(amp)
+            self.phase_model2_vec.append(phase)
+            self.omega_model2_vec.append(self.sin_freq)
+            self.amp_model2_line.setData(self.omega_model2_vec, self.amp_model2_vec)
+            self.phase_model2_line.setData(self.omega_model2_vec, self.phase_model2_vec)
         elif self.sin_type == DEVICE:
             amp, phase = self.fr.calc_point_real(sig1=self.sin_sig_vec[0], 
                                                  sig2=self.sin_sig_vec[1], 
@@ -461,6 +476,9 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.amp_model_vec = []
         self.phase_model_vec = []
         self.omega_model_vec = []
+        self.amp_model2_vec = []
+        self.phase_model2_vec = []
+        self.omega_model2_vec = []
         self.amp_device_vec = []
         self.phase_device_vec = []
         self.omega_device_vec = []

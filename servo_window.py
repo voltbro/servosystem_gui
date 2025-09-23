@@ -57,6 +57,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.kx = config['kx']
             self.kv = config['kv']
 
+            self.font_size = config['font_size']
             self.plot_font_size = config['plot_font_size']
             self.plot_point_size = config['plot_point_size']
             self.plot_line_width = config['plot_line_width']
@@ -73,6 +74,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             self.kx = 16.0
             self.kv = 0.0
 
+            self.font_size = 20
             self.plot_font_size = 36
             self.plot_point_size = 20
             self.plot_line_width = 3
@@ -262,7 +264,9 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
             styles = {"color": "black", "font-size": f"{self.plot_font_size}px"}
         self.resp_plot_graph.setLabel("left", "Angle [rad]", **styles)
         self.resp_plot_graph.setLabel("bottom", "Time [sec]", **styles)
-        self.resp_plot_graph.addLegend()
+        self.resp_plot_graph.addLegend(labelTextSize=f'{self.font_size}pt', labelTextColor=None)
+
+
         self.resp_plot_graph.showGrid(x=True, y=True, alpha=0.1)
         self.resp_plot_graph.setYRange(-self.y_resp_range, self.y_resp_range)
         self.resp_plot_graph.setXRange(-self.x_resp_range, 0.2)
@@ -385,7 +389,7 @@ class ServoWidget(QtWidgets.QWidget, Ui_Form):
         mousePoint = self.root_plot_graph.getPlotItem().vb.mapSceneToView(e.pos())
         x = mousePoint.x()
         y = mousePoint.y()
-        if np.abs(y) <= 0.15:
+        if np.abs(y) <= 0.4:
             y = 0.0
 
         if y == 0.0:

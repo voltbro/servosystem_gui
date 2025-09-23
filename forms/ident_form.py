@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ident_form.ui'
+# Form implementation generated from reading ui file 'ident_form2.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -149,7 +149,7 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Identification"))
         self.label.setText(_translate("Form", "k"))
         self.k_lineEdit.setText(_translate("Form", "0.01"))
-        self.label_2.setText(_translate("Form", "A"))
+        self.label_2.setText(_translate("Form", "a"))
         self.a_lineEdit.setText(_translate("Form", "0.01"))
         self.label_3.setText(_translate("Form", "Freq [Hz]"))
         self.freq_lineEdit.setText(_translate("Form", "0.01"))
@@ -162,3 +162,13 @@ class Ui_Form(object):
         self.drawBtn.setText(_translate("Form", "Draw"))
         self.clearBtn.setText(_translate("Form", "Clear"))
         self.label_7.setText(_translate("Form", "Frequency Response"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    Form = QtWidgets.QWidget()
+    ui = Ui_Form()
+    ui.setupUi(Form)
+    Form.show()
+    sys.exit(app.exec_())

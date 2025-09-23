@@ -21,17 +21,17 @@ freq_plot_range: 3.0
 # --------------
 # SERVO SYSTEM
 # --------------
-delta: 2.0
-alpha: 0.7
+delta: 1.0 #1.0
+alpha: 0.7 #0.7
 
 kx: 16.0
 kv: 0.0
 
-lambda_plot_range_x: 22
-lambda_plot_range_y: 25
-k_plot_range_x: 350
-k_plot_range_y: 15
-servo_plot_range: 10.0
+lambda_plot_range_x: 30 #15
+lambda_plot_range_y: 30 #15
+k_plot_range_x: 45 #45
+k_plot_range_y: 15 #45
+servo_plot_range: 10.0 #10.0
 plot_draw_rate: 25 
 
 # -------------
