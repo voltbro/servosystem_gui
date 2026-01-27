@@ -38,7 +38,8 @@ echo -e "Exec=$DIR/startup.sh" >> $FILE
 echo -e "Comment=Yo-ho-ho" >> $FILE
 echo -e "Icon=$DIR/icons/icon.png" >> $FILE
 echo -e "Name[en]=DCMotorControl" >> $FILE
-cp $FILE ~/Desktop/
+cp $FILE /home/${USER}/Desktop/
+cp $FILE /home/${USER}/Рабочий\ стол/
 sudo cp $FILE /usr/share/applications
 
 echo "Installation complete successfully!"
