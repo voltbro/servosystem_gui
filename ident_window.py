@@ -216,7 +216,7 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
         self.sinProgress.setVisible(False)
 
         iconSize = QSize(self.icon_size, self.icon_size)
-        icon = qta.icon("fa.check", color='green')
+        icon = qta.icon("fa5s.check", color='green')
         self.okLbl = QLabel()
         self.okLbl.setPixmap(icon.pixmap(iconSize))
         self.okLbl.setMinimumHeight(20)
@@ -405,13 +405,13 @@ class IdentWidget(QtWidgets.QWidget, Ui_Form):
                     last_zero = i
                     break
             if self.sin_sig_vec[2][0] > self.sin_sig_vec[2][1]:
-                self.sin_sig_vec[0] = self.sin_sig_vec[0][1:last_zero]
-                self.sin_sig_vec[1] = self.sin_sig_vec[1][1:last_zero]
-                self.sin_sig_vec[2] = self.sin_sig_vec[2][1:last_zero]
+                self.sin_sig_vec[0] = self.sin_sig_vec[0][1:]
+                self.sin_sig_vec[1] = self.sin_sig_vec[1][1:]
+                self.sin_sig_vec[2] = self.sin_sig_vec[2][1:]
             else:
-                self.sin_sig_vec[0] = self.sin_sig_vec[0][:last_zero]
-                self.sin_sig_vec[1] = self.sin_sig_vec[1][:last_zero]
-                self.sin_sig_vec[2] = self.sin_sig_vec[2][:last_zero]
+                self.sin_sig_vec[0] = self.sin_sig_vec[0][:]
+                self.sin_sig_vec[1] = self.sin_sig_vec[1][:]
+                self.sin_sig_vec[2] = self.sin_sig_vec[2][:]
 
             # plt.plot(self.sin_sig_vec[2], self.sin_sig_vec[0])
             # plt.plot(self.sin_sig_vec[2], self.sin_sig_vec[1])

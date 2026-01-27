@@ -69,15 +69,19 @@ class FreqResponce():
         # get amplitude ratio
         # get real amplitude of sig2
         points_num=len(t)
-        fft_freq = np.fft.fftfreq(points_num-1, t[1]-t[0])   # assume uniform spacing
-        fft_result=np.fft.fft(sig2)
+        fft_freq = np.fft.fftfreq(points_num, t[1]-t[0])   # assume uniform spacing
+        f1 = np.fft.fft(sig1)
+        f2 = np.fft.fft(sig2)
         #Remove negative frequencies
         for i in range(len(fft_freq)):
             if fft_freq[i]<0:
-                fft_result[i]=0
-        ampl=np.abs(fft_result)/points_num*2
+                f2[i]=0
+        ampl=np.abs(f2)/points_num*2
         max_index=np.argmax(ampl)
         sig2_amplitude=ampl[max_index]
+        # max_index = np.argmax(np.abs(f1))
+        
+        # sig2_amplitude = (2/points_num) * np.abs(f2[max_index])
         amp_ratio = sig2_amplitude/self.sin_A
 
         return amp_ratio, recovered_phase_shift
